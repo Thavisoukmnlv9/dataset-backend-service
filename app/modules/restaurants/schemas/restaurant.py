@@ -210,11 +210,6 @@ class RestaurantUpdate(BaseModel):
     menu: Optional[MenuIn] = None
     category_details: Optional[CategoryDetailsIn] = None
 
-
-# ── FormData create: JSON string + optional files ──────────────────────────
-# Form fields: data (JSON string), cover_image_file, menu_source_file,
-# gallery_0, gallery_1, ... (optional image files for gallery_urls by index)
-
 class RestaurantFilters(BaseModel):
     """Query filters for list endpoint."""
     province: Optional[str] = None

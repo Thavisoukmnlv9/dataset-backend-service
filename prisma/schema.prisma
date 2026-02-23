@@ -167,6 +167,236 @@ model RateLimit {
   @@map("rate_limits")
 }
 
+model Restaurant {
+  id               String         @id
+  category         ListingCategory @default(restaurant)
+  name             String
+  slug             String         @unique
+  status           ListingStatus  @default(active)
+
+  shortDescription String?
+  longDescription  String?
+
+  country          String
+  province         String
+  district         String
+  village          String?
+  addressText      String?
+
+  latitude         Float?
+  longitude        Float?
+
+  priceBand        PriceBand?
+  currency         String?        // keep flexible (e.g., "LAK")
+  minPrice         Int?
+  maxPrice         Int?
+
+  bookingSupported Boolean        @default(false)
+  walkInSupported  Boolean        @default(true)
+
+  languagesSupported LanguageCode[]
+
+  coverImageUrl    String?
+  ratingAvg        Float?
+  ratingCount      Int            @default(0)
+
+  trustScore       Int?
+  qualityScore     Int?
+  popularityScore  Int?
+
+  gallery          RestaurantGalleryImage[]
+  tags             RestaurantTag[]
+  policies         RestaurantPolicy[]
+  translations     RestaurantTranslation[]
+  hours            RestaurantHours?
+  menu             RestaurantMenu?
+  details          RestaurantDetails?
+
+  createdAt        DateTime
+  updatedAt        DateTime       @updatedAt
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+}
+
+model RestaurantGalleryImage {
+  id           String     @id @default(cuid())
+  restaurantId String
+  url          String
+  description  String?
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+}
+
+model RestaurantTag {
+  id           String     @id @default(cuid())
+  restaurantId String
+  tagType      TagType
+  tagValue     String
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@index([tagType, tagValue])
+}
+
+model RestaurantPolicy {
+  id           String     @id @default(cuid())
+  restaurantId String
+  policyType   PolicyType
+  policyText   String
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@index([policyType])
+}
+
+model RestaurantTranslation {
+  id           String       @id @default(cuid())
+  restaurantId String
+  language     LanguageCode
+
+  name             String?
+  shortDescription String?
+
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, language])
+  @@index([language])
+}
+
+model RestaurantHours {
+  id            String     @id @default(cuid())
+  restaurantId  String     @unique
+  weeklySchedule Json
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+model RestaurantMenu {
+  id            String     @id @default(cuid())
+  restaurantId  String     @unique
+
+  sourceType    String
+  sourceVersion String?
+  sourceUrl     String?
+  language      LanguageCode?
+  extractedAt   DateTime?
+  metadata      Json?
+
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sections      MenuSection[]
+
+  @@index([restaurantId])
+}
+
+model MenuSection {
+  id        String         @id @default(cuid())
+  menuId    String
+  name      String
+  sortOrder Int            @default(0)
+
+  menu      RestaurantMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  items     MenuItem[]
+
+  @@index([menuId])
+}
+
+model MenuItem {
+  id              String      @id @default(cuid())
+  sectionId        String
+  itemId           String?     // keeps your "menu_001" etc (external id)
+
+  name             String
+  description      String?
+  price            Int?
+  currency         String? 
+  imageUrl         String?
+  imageDescription String?
+  dietary          Json?
+  spiceLevel       SpiceLevel?
+  allergens        String[]    // e.g. ["fish_sauce", "peanut"]
+  tags             String[]    // e.g. ["dip", "local"]
+  section          MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  @@index([sectionId])
+  @@index([itemId])
+}
+
+model RestaurantDetails {
+  id                  String     @id @default(cuid())
+  restaurantId        String     @unique
+  cuisineTypes        String[]
+  mealTypes           String[]
+  avgSpendPerPerson   Int?
+  dietaryOptions      Json?
+  reservationSupported Boolean   @default(false)
+  reservationRequired  Boolean   @default(false)
+  seatingCapacity     Int?
+  indoorSeating       Boolean    @default(false)
+  outdoorSeating      Boolean    @default(false)
+  takeawayAvailable   Boolean    @default(false)
+  deliveryAvailable   Boolean    @default(false)
+  paymentMethods      String[]
+  signatureDishes     String[]
+  restaurant          Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  @@index([restaurantId])
+}
+
+
+enum ListingCategory {
+  restaurant
+  cafe
+  attraction
+  vehicle_rental
+  bar
+  souvenir
+}
+
+enum ListingStatus {
+  active
+  inactive
+  draft
+  archived
+}
+
+enum PriceBand {
+  budget
+  mid
+  premium
+  luxury
+}
+
+enum TagType {
+  vibe
+  theme
+  occasion
+  feature
+  cuisine
+  other
+}
+
+enum PolicyType {
+  cancellation
+  deposit
+  reservation
+  other
+}
+
+enum LanguageCode {
+  lo
+  en
+  th
+}
+
+enum SpiceLevel {
+  mild
+  medium
+  hot
+}
+
 enum UserRole {
   ADMIN
   SUPER_ADMIN

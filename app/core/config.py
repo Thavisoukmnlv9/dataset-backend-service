@@ -66,7 +66,27 @@ class Settings(BaseSettings):
         description="PostgreSQL database URL",
         alias="DATABASE_URL"
     )
-
+    # ========================================
+    # GEMINI
+    # ========================================
+    gemini_api_key: str = Field(
+        default="AIzaSyCPxPfmJlSkYt0Tz3FmLqPEpvqN2in2Uds",
+        description="Gemini API key",
+        alias="GEMINI_API_KEY"
+    )
+    # ========================================
+    # QDRANT
+    # ========================================
+    qdrant_url: str = Field(
+        default="http://localhost:6333",
+        description="Qdrant URL",
+        alias="QDRANT_URL"
+    )
+    qdrant_api_key: str = Field(
+        default="",
+        description="Qdrant API key",
+        alias="QDRANT_API_KEY"
+    )
     # ========================================
     # CORS SETTINGS
     # ========================================

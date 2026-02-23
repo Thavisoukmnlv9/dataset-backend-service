@@ -1,0 +1,33 @@
+name: Auto Deploy FastAPI to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH and Deploy
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 128.199.187.234 >> ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@128.199.187.234 << 'EOF'
+            cd /var/www/tourism-middleware
+            git fetch --all
+            git reset --hard origin/main
+            git clean -fd
+            git pull origin main
+            source .venv/bin/activate
+            pip install -r requirements.txt
+            chmod +x start.sh
+            pm2 restart tourism-middleware
+          EOF

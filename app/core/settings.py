@@ -1,0 +1,48 @@
+"""
+Application settings and configuration.
+"""
+import logging
+from typing import Dict
+from pydantic import BaseModel
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class AppSettings(BaseModel):
+    """Application-specific settings"""
+    title: str = "dataset Tourism Middleware API"
+    description: str = "Comprehensive API for dataset tourism platform with modular architecture."
+    version: str = "2.1.0"
+    contact: Dict[str, str] = {
+        "name": "Bounyalith Chanrasanichone",
+        "email": "bounyalith.c@gmail.com",
+    }
+    license_info: Dict[str, str] = {
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    }
+
+
+class ServiceConfig(BaseModel):
+    """Service configuration for loading routes"""
+    name: str
+    import_path: str
+    router_name: str = "router"
+    enabled: bool = True
+
+
+SERVICES_TO_LOAD = [
+    ServiceConfig(name="Auth", import_path="app.modules.auth.api.routes", router_name="router"),
+    ServiceConfig(name="Users", import_path="app.modules.users.api.routes", router_name="router"),
+]
+
+API_ENDPOINTS = {
+    "auth": "/api/v1/auth",
+    "users": "/api/v1/users",
+}
+
+app_settings = AppSettings()

@@ -1,0 +1,54 @@
+# Development Dockerfile with hot reload and debugging capabilities
+FROM python:3.11-slim
+
+# Set environment variables for Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH="/app"
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for development
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    libpq-dev \
+    vim \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy requirements first for better caching
+COPY requirements/dev.txt requirements.txt
+
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create non-root user with specific UID/GID for security
+RUN groupadd -r app && useradd -r -g app -d /app -s /bin/bash app
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/logs && \
+    chown -R app:app /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER app
+
+# Expose port
+EXPOSE 8000
+
+# Add labels for better container management
+LABEL maintainer="dataset Team" \
+      version="1.0-dev" \
+      description="dataset Tourism Backend Service - Development"
+
+# Start command with hot reload and debugging
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]

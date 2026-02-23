@@ -1,0 +1,51 @@
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Ignore Virtual Environment
+.venv/
+venv/
+pyvenv.cfg
+
+# Ignore Environment Variables
+.env
+*.env
+
+# Ignore Database Files (SQLite example, not needed for PostgreSQL)
+*.db
+*.sqlite3
+
+# Ignore VS Code & JetBrains IDE settings
+.vscode/
+.idea/
+
+# Ignore MacOS system files
+.DS_Store
+
+# Ignore pytest & Jupyter files
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Ignore Prisma Generated Client
+prisma/.pytest_cache/
+prisma/migrations/
+prisma/node_modules/
+app/prisma/generated
+node_modules/
+package-lock.json
+yarn.lock
+
+# Ignore Docker & Deployment Artifacts
+docker-compose.override.yml
+*.pem
+
+DATABASE_SETUP.md
+/app/generated/prisma
+otp_codes.txt
+
+# Ignore Deployment Server Configuration (contains sensitive credentials)
+infra/deploy/server-config.sh
+

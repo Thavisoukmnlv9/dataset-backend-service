@@ -1,0 +1,132 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17
+    container_name: tourism_postgres_prod
+    environment:
+      POSTGRES_DB: tourism_db
+      POSTGRES_USER: tourism_user
+      POSTGRES_PASSWORD: tourism_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - tourism_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tourism_user -d tourism_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: tourism_redis_prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - tourism_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MinIO for file storage
+  minio:
+    image: minio/minio:latest
+    container_name: tourism_minio_prod
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data_prod:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - tourism_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  # Tourism Middleware API - Production Build
+  tourism-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tourism_api_prod
+    environment:
+      - DATABASE_URL=postgresql://tourism_user:tourism_password@postgres:5432/tourism_db
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_SECURE=false
+      - MINIO_PUBLIC_URL=http://minio:9000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./prisma:/app/prisma
+    networks:
+      - tourism_network
+    command: >
+      sh -c "
+        prisma generate &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+      "
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prisma Studio - Production Build
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tourism_prisma_studio_prod
+    environment:
+      - DATABASE_URL=postgresql://tourism_user:tourism_password@postgres:5432/tourism_db
+    ports:
+      - "5555:5555"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./prisma:/app/prisma
+    networks:
+      - tourism_network
+    command: >
+      sh -c "
+        prisma generate &&
+        prisma studio --hostname 0.0.0.0 --port 5555
+      "
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+  minio_data_prod:
+
+networks:
+  tourism_network:
+    driver: bridge

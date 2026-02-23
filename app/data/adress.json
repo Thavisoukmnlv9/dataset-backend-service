@@ -1,0 +1,858 @@
+[
+    {
+        "province_lao": "ນະຄອນຫຼວງວຽງຈັນ",
+        "province_english": "Vientiane Prefecture",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງໄຊເສດຖາ",
+                "districtEnglish": "Xaysetha",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສີສັດຕະນາກ",
+                "districtEnglish": "Sisattanak",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງນາຊາຍທອງ",
+                "districtEnglish": "Naxaithong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໄຊທານີ",
+                "districtEnglish": "Xaythany",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຫາດຊາຍຟອງ",
+                "districtEnglish": "Hadxayfong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສັງທອງ",
+                "districtEnglish": "Sangthong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກງື່ມ",
+                "districtEnglish": "Mayparkngum",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຜົ້ງສາລີ",
+        "province_english": "Phongsaly",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງຜົ້ງສາລີ",
+                "districtEnglish": "Phongsaly",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໃໝ່",
+                "districtEnglish": "May",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຂວາ",
+                "districtEnglish": "Khoua",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສຳພັນ",
+                "districtEnglish": "Sampanh",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງບຸນເໜືອ",
+                "districtEnglish": "Boun Neua",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຍອດອູ",
+                "districtEnglish": "Yotou",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງບຸນໃຕ້",
+                "districtEnglish": "Boun Tay",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຫຼວງນໍ້າທາ",
+        "province_english": "Luang Namtha",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງຫຼວງນໍ້າທາ",
+                "districtEnglish": "Namtha",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສີງ",
+                "districtEnglish": "Sing",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງລອງ",
+                "districtEnglish": "Long",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວຽງພູຄາ",
+                "districtEnglish": "Viengphoukha",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງນາແລ",
+                "districtEnglish": "Nale",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ອຸດົມໄຊ",
+        "province_english": "Oudomxay",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງໄຊ",
+                "districtEnglish": "Xay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຫຼາ",
+                "districtEnglish": "La",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງນາໝໍ້",
+                "districtEnglish": "Namo",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງງາ",
+                "districtEnglish": "Nga",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງແບ່ງ",
+                "districtEnglish": "Beng",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຮຸນ",
+                "districtEnglish": "Houne",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກແບ່ງ",
+                "districtEnglish": "Pakbeng",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ບໍ່ແກ້ວ",
+        "province_english": "Bokeo",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງຫ້ວຍຊາຍ",
+                "districtEnglish": "Houayxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຕົ້ນເຜິ້ງ",
+                "districtEnglish": "Tonpheung",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເມິງ",
+                "districtEnglish": "Meung",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຜາອຸດົມ",
+                "districtEnglish": "Phaoudom",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກທາ",
+                "districtEnglish": "Paktha",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຫຼວງພະບາງ",
+        "province_english": "Luangprabang",
+        "is_active": true,
+        "districts": [
+            {
+                "districtLao": "ເມືອງຫຼວງພະບາງ",
+                "districtEnglish": "Luangprabang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊຽງເງິນ",
+                "districtEnglish": "Xiengeneun",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງນານ",
+                "districtEnglish": "Nane",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກອູ",
+                "districtEnglish": "Pakou",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງນ້ຳບາກ",
+                "districtEnglish": "Nambak",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງງອຍ",
+                "districtEnglish": "Ngoy",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກແຊງ",
+                "districtEnglish": "Pakseng",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໂພນໄຊ",
+                "districtEnglish": "Phonxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຈອມເພັດ",
+                "districtEnglish": "Chomphet",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວຽງຄຳ ແຂວງຫຼວງພະບາງ",
+                "districtEnglish": "Viengkhamluangprabang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງພູຄູນ",
+                "districtEnglish": "Phoukhoune",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໂພນທອງ ແຂວງຫຼວງພະບາງ",
+                "districtEnglish": "Phonthongluangprabang",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຫົວພັນ",
+        "province_english": "Houaphanh",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງຊຳເໜືອ",
+                "districtEnglish": "Xamneua",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊຽງຄໍ້",
+                "districtEnglish": "Xiengkho",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວຽງທອງ ແຂວງຫົວພັນ",
+                "districtEnglish": "Viengthonghouaphanh",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວຽງໄຊ",
+                "districtEnglish": "Viengxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຫົວເມືອງ",
+                "districtEnglish": "Houameuang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊຳໃຕ້",
+                "districtEnglish": "Samtay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສົບເບົາ",
+                "districtEnglish": "Sopbao",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງແອດ",
+                "districtEnglish": "Et",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງກອັນ",
+                "districtEnglish": "Kone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊ່ອນ",
+                "districtEnglish": "Xon",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ໄຊຍະບູລີ",
+        "province_english": "Sainyabuli",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງໄຊຍະບູລີ",
+                "districtEnglish": "Sainyabuli",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຄອບ",
+                "districtEnglish": "Khop",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຫົງສາ",
+                "districtEnglish": "Hongsa",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເງິນ",
+                "districtEnglish": "Ngeun",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊຽງຮ່ອນ",
+                "districtEnglish": "Xienghone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງພຽງ",
+                "districtEnglish": "Phiang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກລາຍ",
+                "districtEnglish": "Parklai",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງແກ່ນທ້າວ",
+                "districtEnglish": "Kenethao",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງບໍ່ແຕນ",
+                "districtEnglish": "Botene",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງທົ່ງມີໄຊ",
+                "districtEnglish": "Thongmyxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໄຊສະຖານ",
+                "districtEnglish": "Xaisathan",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຊຽງຂວາງ",
+        "province_english": "Xiangkhouang",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງແປກ",
+                "districtEnglish": "Pek",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຄຳ",
+                "districtEnglish": "Kham",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໜອງແຮດ",
+                "districtEnglish": "Nonghet",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຄູນ",
+                "districtEnglish": "Khoune",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໝອກໃໝ່",
+                "districtEnglish": "Mokmay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງພູກູດ",
+                "districtEnglish": "Phoukout",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຜາໄຊ",
+                "districtEnglish": "Phaxay",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ວຽງຈັນ",
+        "province_english": "Vientiane Province",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງໂພນໂຮງ",
+                "districtEnglish": "Phonhong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງທຸລະຄົມ",
+                "districtEnglish": "Thoulakhom",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງແກ້ວອຸດົມ",
+                "districtEnglish": "Keooudom",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງກາສີ",
+                "districtEnglish": "Kasy",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວັງວຽງ",
+                "districtEnglish": "Vangvieng",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເຟືອງ",
+                "districtEnglish": "Feuang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊະນະຄາມ",
+                "districtEnglish": "Xanakharm",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງແມດ",
+                "districtEnglish": "Mad",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວຽງຄໍາ ແຂວງຊຽງຂວາງ",
+                "districtEnglish": "Viengkham Xiangkhouang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຫີນເຫີບ",
+                "districtEnglish": "Hinhurp",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໝື່ນ",
+                "districtEnglish": "Meun",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ບໍລິຄຳໄຊ",
+        "province_english": "Bolikhamsai",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງປາກຊັນ",
+                "districtEnglish": "Pakxan",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງທ່າພະບາດ",
+                "districtEnglish": "Thaphabat",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກກະດິງ",
+                "districtEnglish": "Pakkading",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງບໍລິຄັນ",
+                "districtEnglish": "Borikhane",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຄຳເກີດ",
+                "districtEnglish": "Khamkeut",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວຽງທອງ ແຂວງຊຽງຂວາງ",
+                "districtEnglish": "Viengthong Xiangkhouang",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໄຊຈຳພອນ",
+                "districtEnglish": "Xaichamphon",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຄຳມ່ວນ",
+        "province_english": "Khammouane",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງທ່າແຂກ",
+                "districtEnglish": "Thakhek",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງມະຫາໄຊ",
+                "districtEnglish": "Mahaxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໜອງບົກ",
+                "districtEnglish": "Nong Bok",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຫີນບູນ",
+                "districtEnglish": "Hineboune",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຍົມມະລາດ",
+                "districtEnglish": "Yommalath",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງບົວລະພາ",
+                "districtEnglish": "Boualapha",
+                "is_active": true
+            },
+            {
+                "districtLao": "ມືອງນາກາຍ",
+                "districtEnglish": "Nakai",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເຊບັ້ງໄຟ",
+                "districtEnglish": "Sebangphay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໄຊບົວທອງ",
+                "districtEnglish": "Xaibouathong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຄູນຄຳ",
+                "districtEnglish": "Kounkham",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ສະຫວັນນະເຂດ",
+        "province_english": "Savannakhet",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງໄກສອນ ພົມວິຫານ",
+                "districtEnglish": "Kaysone Phomvihane",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງອຸທຸມພອນ",
+                "districtEnglish": "Outhoumphone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງອາດສະພັງທອງ",
+                "districtEnglish": "Atsaphangthong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງພີນ",
+                "districtEnglish": "Phine",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເຊໂປນ",
+                "districtEnglish": "Seponh",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງນອງ",
+                "districtEnglish": "Nong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງທ່າປາງທອງ",
+                "districtEnglish": "Thapangthong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສອງຄອນ",
+                "districtEnglish": "Songkhone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຈຳພອນ",
+                "districtEnglish": "Champhone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊົນນະບູລີ",
+                "districtEnglish": "Xonaboury",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໄຊບູລີ",
+                "districtEnglish": "Xayboury",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວີລະບຸລີ",
+                "districtEnglish": "Viraboury",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງອາດສະພອນ",
+                "districtEnglish": "Assaphone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໄຊພູທອງ",
+                "districtEnglish": "Xonboury",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງພະລານໄຊ",
+                "districtEnglish": "Thaphalanxay",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ສາລະວັນ",
+        "province_english": "Salavan",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງສາລະວັນ",
+                "districtEnglish": "Saravane",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຕະໂອ້ຍ",
+                "districtEnglish": "Taoy",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຕຸ້ມລານ",
+                "districtEnglish": "Toumlane",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງລະຄອນເພັງ",
+                "districtEnglish": "Lakhonepheng",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງວາປີ",
+                "districtEnglish": "Vapy",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຄົງເຊໂດນ",
+                "districtEnglish": "Khongsedone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເລົ່າງາມ",
+                "districtEnglish": "Laongam",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສະມ້ວຍ",
+                "districtEnglish": "Samouay",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ເຊກອງ",
+        "province_english": "Sekong",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງລະມາມ",
+                "districtEnglish": "Lamam",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງກະເລິມ",
+                "districtEnglish": "Kaleum",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງດາກຈຶງ",
+                "districtEnglish": "Dakcheung",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງທ່າແຕງ",
+                "districtEnglish": "Thateng",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ຈຳປາສັກ",
+        "province_english": "Champasak",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງປາກເຊ",
+                "districtEnglish": "Pakse",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊະນະສົມບູນ",
+                "districtEnglish": "Sanasomboun",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງບາຈຽງຈະເລີນສຸກ",
+                "districtEnglish": "Batiengchaleungsouk",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປາກຊ່ອງ",
+                "districtEnglish": "Paksong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງປະທຸມພອນ",
+                "districtEnglish": "Pathouphone",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໂພນທອງ ແຂວງຈຳປາສັກ",
+                "districtEnglish": "Phonthongchampasak",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຈຳປາສັກ",
+                "districtEnglish": "Champassack",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສຸຂຸມາ",
+                "districtEnglish": "Soukhoumma",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງມູນລະປະໂມກ",
+                "districtEnglish": "Mounlapamok",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງໂຂງ",
+                "districtEnglish": "Khong",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ອັດຕະປື",
+        "province_english": "Attapue",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງໄຊເຊດຖາ",
+                "districtEnglish": "Saysetha",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສາມັກຄີໄຊ",
+                "districtEnglish": "Samakkhixay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງສະໜາມໄຊ",
+                "districtEnglish": "Sanamxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງຊານໄຊ",
+                "districtEnglish": "Sanxay",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງພູວົງ",
+                "districtEnglish": "Phouvong",
+                "is_active": true
+            }
+        ]
+    },
+    {
+        "province_lao": "ໄຊສົມບູນ",
+        "province_english": "Xaisomboun",
+        "is_active": false,
+        "districts": [
+            {
+                "districtLao": "ເມືອງອະນຸວົງ",
+                "districtEnglish": "Anouvong",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງລ້ອງແຈ້ງ",
+                "districtEnglish": "Longchaeng",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງລ້ອງຊານ",
+                "districtEnglish": "Longxan",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງເມືອງຮົ່ມ",
+                "districtEnglish": "Hom",
+                "is_active": true
+            },
+            {
+                "districtLao": "ເມືອງທ່າໂທມ",
+                "districtEnglish": "Thathom",
+                "is_active": true
+            }
+        ]
+    }
+]

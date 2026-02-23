@@ -67,7 +67,7 @@ async def create_user_with_form_data_and_image(
                     "nickname": f"{user_data.first_name} {user_data.last_name}".strip() if user_data.first_name and user_data.last_name else None,
                     "phone_number": user_data.phone_number,
                     "avatar_url": user_data.avatar_url,
-                    "role": user_data.role.value if user_data.role else "tourist",
+                    "role": user_data.role.value if user_data.role else "STAFF",
                     "banned": False,
                     "ban_reason": None,
                     "ban_expires": None,

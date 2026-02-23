@@ -30,7 +30,6 @@ USERS_AUTH_DATA = [
         "country_code": "LAO",
         "language_pref": "en",
         "role": "SUPER_ADMIN",
-        "type": "ADMIN",
         "email_verified": True,
         "phone_number_verified": True,
         "banned": False,
@@ -48,7 +47,6 @@ USERS_AUTH_DATA = [
         "country_code": "LAO",
         "language_pref": "en",
         "role": "ADMIN",
-        "type": "STAFF_MEMBER",
         "email_verified": True,
         "phone_number_verified": True,
         "banned": False,
@@ -65,8 +63,7 @@ USERS_AUTH_DATA = [
         "phone_number": "+85620123456791",
         "country_code": "LAO",
         "language_pref": "lo",
-        "role": "VENDOR_ADMIN",
-        "type": "VENDOR",
+        "role": "ADMIN",
         "email_verified": True,
         "phone_number_verified": True,
         "banned": False,
@@ -83,8 +80,7 @@ USERS_AUTH_DATA = [
         "phone_number": "+85620123456792",
         "country_code": "LAO",
         "language_pref": "lo",
-        "role": "VENDOR_STAFF",
-        "type": "VENDOR",
+        "role": "STAFF",
         "email_verified": True,
         "phone_number_verified": True,
         "banned": False,
@@ -101,8 +97,7 @@ USERS_AUTH_DATA = [
         "phone_number": "+1234567891",
         "country_code": "USA",
         "language_pref": "en",
-        "role": "VENDOR_STAFF",
-        "type": "CLIENT",
+        "role": "STAFF",
         "email_verified": True,
         "phone_number_verified": True,
         "banned": False,
@@ -172,7 +167,6 @@ def build_user_create_data(
         "phone_number": user_data["phone_number"],
         "theme_pref": "dark",
         "role": user_data["role"],
-        "type": user_data["type"],
         "banned": user_data["banned"],
         "ban_reason": user_data.get("ban_reason"),
         "ban_expires": user_data.get("ban_expires"),
@@ -202,8 +196,7 @@ def print_summary(created_users: list) -> None:
     verified_phones = sum(1 for u in created_users if u.phone_number_verified)
     banned = sum(1 for u in created_users if u.banned)
     admins = sum(1 for u in created_users if u.role in ['SUPER_ADMIN', 'ADMIN'])
-    vendors = sum(1 for u in created_users if u.role in ['VENDOR_STAFF', 'VENDOR_ADMIN'])
-    support = sum(1 for u in created_users if u.role in ['SUPPORT', 'MODERATOR'])
+    staff = sum(1 for u in created_users if u.role == 'STAFF')
 
     print("\n📊 Summary:")
     print(f"   👥 Total users: {len(created_users)}")
@@ -211,8 +204,7 @@ def print_summary(created_users: list) -> None:
     print(f"   📱 Phone verified: {verified_phones}")
     print(f"   🚫 Banned users: {banned}")
     print(f"   👑 Admin users: {admins}")
-    print(f"   🏪 Vendor users: {vendors}")
-    print(f"   🛟 Support/Moderator users: {support}")
+    print(f"   👤 Staff users: {staff}")
 
     missing_pw = [u.email for u in created_users if not u.password]
     print("\n🔐 Verifying user passwords...")

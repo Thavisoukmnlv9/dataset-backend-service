@@ -50,8 +50,7 @@ model User {
   updated_at     DateTime  @updatedAt
   deleted_at     DateTime?
   // Relations
-  role           UserRole  @default(VENDOR_STAFF)
-  type           UserType  @default(CLIENT)
+  role           UserRole  @default(STAFF)
   banned         Boolean   @default(false)
   ban_reason     String?   @db.Text
   ban_expires    DateTime?
@@ -168,19 +167,8 @@ model RateLimit {
   @@map("rate_limits")
 }
 
-enum UserType {
-  CLIENT
-  VENDOR
-  STAFF_MEMBER
-  TRIPBUDDY
-  ADMIN
-}
-
 enum UserRole {
-  VENDOR_STAFF
-  VENDOR_ADMIN
   ADMIN
   SUPER_ADMIN
-  SUPPORT
-  MODERATOR
+  STAFF
 }

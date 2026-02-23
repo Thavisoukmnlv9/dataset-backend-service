@@ -119,11 +119,11 @@ async def get_super_admin_user(current_user = Depends(get_current_user)):
     return current_user
 
 async def get_vendor_user(current_user = Depends(get_current_user)):
-    """Get current user with vendor role"""
-    if current_user.role not in ["VENDOR_BASIC", "VENDOR_PREMIUM", "ADMIN"]:
+    """Get current user with staff or admin role"""
+    if current_user.role not in ["STAFF", "ADMIN", "SUPER_ADMIN"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Vendor access required"
+            detail="Staff or admin access required"
         )
     return current_user
 

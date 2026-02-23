@@ -119,7 +119,6 @@ async def get_users(
                 "failed_login_attempts": user.failed_login_attempts,
                 "locked_until": user.locked_until.isoformat() if user.locked_until else None,
                 "role": user.role,
-                "type": user.type,
                 "banned": user.banned,
                 "ban_reason": user.ban_reason,
                 "ban_expires": user.ban_expires.isoformat() if user.ban_expires else None,
@@ -308,7 +307,6 @@ async def search_users(
                 "failed_login_attempts": user.failed_login_attempts,
                 "locked_until": user.locked_until.isoformat() if user.locked_until else None,
                 "role": user.role,
-                "type": user.type,
                 "banned": user.banned,
                 "ban_reason": user.ban_reason,
                 "ban_expires": user.ban_expires.isoformat() if user.ban_expires else None,
@@ -421,8 +419,6 @@ def build_where_clause(filters: UserFilters, search_query: Optional[str] = None)
             "contains": filters.phone_number, "mode": "insensitive"}
     if filters.role:
         where_clause["role"] = filters.role.value if hasattr(filters.role, 'value') else filters.role
-    if filters.type:
-        where_clause["type"] = filters.type.value if hasattr(filters.type, 'value') else filters.type
     if filters.banned is not None:
         where_clause["banned"] = filters.banned
     if filters.is_anonymous is not None:
@@ -565,12 +561,6 @@ def parse_filters_from_frontend(filters_json: str) -> tuple[UserFilters, Optiona
                     user_filters.role = UserRoleEnum(value)
                 except ValueError:
                     user_filters.role = value
-            elif field == 'type' and op == 'eq':
-                try:
-                    from app.modules.users.schemas.user import UserTypeEnum
-                    user_filters.type = UserTypeEnum(value)
-                except ValueError:
-                    user_filters.type = value
             elif field == 'banned' and op == 'eq':
                 user_filters.banned = value
             elif field == 'is_anonymous' and op == 'eq':

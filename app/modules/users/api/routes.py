@@ -20,7 +20,6 @@ from app.modules.users.schemas.user import (
     UserUpdate,
     UserBanUpdate,
     UserRoleEnum,
-    UserTypeEnum,
     UserFormDataCreate,
     UserRoleCreateData,
     UserLookupQueryDTO,
@@ -72,7 +71,6 @@ async def list_users(
     sort_json: Optional[str] = Query(None, alias="sort_json"),
     filters_json: Optional[str] = Query(None, alias="filters_json"),
     role: Optional[UserRoleEnum] = Query(None),
-    type: Optional[UserTypeEnum] = Query(None),
     banned: Optional[bool] = Query(None),
     is_active: Optional[bool] = Query(None),
     email_verified: Optional[bool] = Query(None),
@@ -82,7 +80,6 @@ async def list_users(
 
     filters = UserFilters(
         role=role,
-        type=type,
         banned=banned,
         is_active=is_active,
         email_verified=email_verified,

@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from uuid import UUID
 from fastapi import HTTPException, status, UploadFile
 from app.prisma import prisma
-from app.modules.users.schemas.user import UserRoleEnum, UserTypeEnum, UserUpdate, UserResponse, UserBanUpdate
+from app.modules.users.schemas.user import UserRoleEnum, UserUpdate, UserResponse, UserBanUpdate
 from app.shared.utils.responses.response import create_success_response
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.exceptions import raise_business_logic_error, raise_not_found_error
@@ -85,8 +85,6 @@ async def update_user(user_id: UUID,  user_data: UserUpdate, avatar_file: Option
             update_data["theme_pref"] = user_data.theme_pref
         if user_data.role is not None:
             update_data["role"] = UserRoleEnum(user_data.role)
-        if user_data.type is not None:
-            update_data["type"] = UserTypeEnum(user_data.type)
         if user_data.is_anonymous is not None:
             update_data["is_anonymous"] = user_data.is_anonymous
         if user_data.is_active is not None:
@@ -113,7 +111,6 @@ async def update_user(user_id: UUID,  user_data: UserUpdate, avatar_file: Option
             "phone_number": user_dict.get("phone_number"),
             "theme_pref": user_dict.get("theme_pref"),
             "role": user_dict.get("role"),
-            "type": user_dict.get("type"),
             "banned": user_dict.get("banned"),
             "is_anonymous": user_dict.get("is_anonymous"),
             "is_active": user_dict.get("is_active"),

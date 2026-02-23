@@ -63,7 +63,7 @@ class UserResponse(BaseEntity):
     country_code: Optional[str] = None
     language_pref: str = "en"
     theme_pref: str = "dark"
-    role: str = "VENDOR_STAFF"
+    role: str = "STAFF"
     is_active: bool = True
     avatar_url: Optional[str] = None
     email_verified: bool = False

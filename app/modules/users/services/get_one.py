@@ -88,7 +88,6 @@ async def get_user(user_id: UUID) -> Dict[str, Any]:
             "failed_login_attempts": user.failed_login_attempts,
             "locked_until": user.locked_until.isoformat() if user.locked_until else None,
             "role": user.role,
-            "type": user.type,
             "banned": user.banned,
             "ban_reason": user.ban_reason,
             "ban_expires": user.ban_expires.isoformat() if user.ban_expires else None,

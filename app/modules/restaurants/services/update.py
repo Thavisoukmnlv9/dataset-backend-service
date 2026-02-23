@@ -1,0 +1,232 @@
+"""Update restaurant: PostgreSQL and optional re-index in Qdrant."""
+import logging
+from typing import Any, Dict, List, Optional
+
+from fastapi import HTTPException, status, UploadFile
+
+from app.prisma import prisma
+from app.shared.services.infrastructure.storage import storage_service
+from app.shared.utils.responses.response import create_success_response
+
+from app.modules.restaurants.schemas.restaurant import RestaurantUpdate
+
+logger = logging.getLogger(__name__)
+
+
+async def update_restaurant(
+    restaurant_id: str,
+    data: RestaurantUpdate,
+    cover_image_file: Optional[UploadFile] = None,
+    menu_source_file: Optional[UploadFile] = None,
+    gallery_files: Optional[List[UploadFile]] = None,
+) -> Dict[str, Any]:
+    """Update restaurant; upload files if provided and re-index in Qdrant if searchable content changed."""
+    from app.modules.restaurants.services.create import _serialize_restaurant
+
+    try:
+        existing = await prisma.restaurant.find_unique(
+            where={"id": restaurant_id},
+            include={"gallery": True, "tags": True, "policies": True, "translations": True, "hours": True, "menu": True, "details": True},
+        )
+        if not existing:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
+
+        # Upload files and set URLs
+        if cover_image_file and cover_image_file.filename:
+            result = await storage_service.upload_file(cover_image_file, "restaurants")
+            if result.success and result.data:
+                data.cover_image_url = result.data.get("object_name")
+        if menu_source_file and menu_source_file.filename and existing.menu:
+            result = await storage_service.upload_file(menu_source_file, "restaurants/menus", auto_resize=False)
+            if result.success and result.data:
+                await prisma.restaurantmenu.update(
+                    where={"id": existing.menu.id},
+                    data={"sourceUrl": result.data.get("object_name")},
+                )
+        if gallery_files:
+            new_gallery = []
+            for f in gallery_files:
+                if not f or not f.filename:
+                    continue
+                result = await storage_service.upload_file(f, "restaurants/gallery")
+                if result.success and result.data:
+                    new_gallery.append({"url": result.data.get("object_name"), "description": None})
+            if new_gallery:
+                await prisma.restaurantgalleryimage.delete_many(where={"restaurantId": restaurant_id})
+                await prisma.restaurantgalleryimage.create_many(
+                    data=[{"restaurantId": restaurant_id, "url": g["url"], "description": g.get("description")} for g in new_gallery]
+                )
+
+        # Build update payload (only set provided fields)
+        update_payload: Dict[str, Any] = {}
+        if data.name is not None:
+            update_payload["name"] = data.name
+        if data.slug is not None:
+            slug_exists = await prisma.restaurant.find_first(where={"slug": data.slug, "id": {"not": restaurant_id}})
+            if slug_exists:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Slug already in use")
+            update_payload["slug"] = data.slug
+        if data.status is not None:
+            update_payload["status"] = data.status.value
+        if data.short_description is not None:
+            update_payload["shortDescription"] = data.short_description
+        if data.long_description is not None:
+            update_payload["longDescription"] = data.long_description
+        if data.country is not None:
+            update_payload["country"] = data.country
+        if data.province is not None:
+            update_payload["province"] = data.province
+        if data.district is not None:
+            update_payload["district"] = data.district
+        if data.village is not None:
+            update_payload["village"] = data.village
+        if data.address_text is not None:
+            update_payload["addressText"] = data.address_text
+        if data.latitude is not None:
+            update_payload["latitude"] = data.latitude
+        if data.longitude is not None:
+            update_payload["longitude"] = data.longitude
+        if data.price_band is not None:
+            update_payload["priceBand"] = data.price_band.value
+        if data.currency is not None:
+            update_payload["currency"] = data.currency
+        if data.min_price is not None:
+            update_payload["minPrice"] = data.min_price
+        if data.max_price is not None:
+            update_payload["maxPrice"] = data.max_price
+        if data.booking_supported is not None:
+            update_payload["bookingSupported"] = data.booking_supported
+        if data.walk_in_supported is not None:
+            update_payload["walkInSupported"] = data.walk_in_supported
+        if data.languages_supported is not None:
+            update_payload["languagesSupported"] = [c.value for c in data.languages_supported]
+        if data.cover_image_url is not None:
+            update_payload["coverImageUrl"] = data.cover_image_url
+        if data.rating_avg is not None:
+            update_payload["ratingAvg"] = data.rating_avg
+        if data.rating_count is not None:
+            update_payload["ratingCount"] = data.rating_count
+        if data.trust_score is not None:
+            update_payload["trustScore"] = data.trust_score
+        if data.quality_score is not None:
+            update_payload["qualityScore"] = data.quality_score
+        if data.popularity_score is not None:
+            update_payload["popularityScore"] = data.popularity_score
+
+        if update_payload:
+            await prisma.restaurant.update(where={"id": restaurant_id}, data=update_payload)
+
+        # Tags, policies, hours, menu, details: simplified - only replace if provided
+        if data.tags is not None:
+            await prisma.restauranttag.delete_many(where={"restaurantId": restaurant_id})
+            if data.tags:
+                await prisma.restauranttag.create_many(
+                    data=[{"restaurantId": restaurant_id, "tagType": t.tag_type.value, "tagValue": t.tag_value} for t in data.tags]
+                )
+        if data.policies is not None:
+            await prisma.restaurantpolicy.delete_many(where={"restaurantId": restaurant_id})
+            if data.policies:
+                await prisma.restaurantpolicy.create_many(
+                    data=[{"restaurantId": restaurant_id, "policyType": p.policy_type.value, "policyText": p.policy_text} for p in data.policies]
+                )
+        if data.hours is not None and data.hours.weekly_schedule:
+            from app.modules.restaurants.services.create import _to_prisma_weekly_schedule
+            if existing.hours:
+                await prisma.restauranthours.update(
+                    where={"id": existing.hours.id},
+                    data={"weeklySchedule": _to_prisma_weekly_schedule(data.hours)},
+                )
+            else:
+                await prisma.restauranthours.create(
+                    data={"restaurantId": restaurant_id, "weeklySchedule": _to_prisma_weekly_schedule(data.hours)},
+                )
+        if data.translations is not None:
+            await prisma.restauranttranslation.delete_many(where={"restaurantId": restaurant_id})
+            for lang, tr in data.translations.items():
+                name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
+                short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
+                await prisma.restauranttranslation.create(
+                    data={"restaurantId": restaurant_id, "language": lang, "name": name, "shortDescription": short},
+                )
+        if data.category_details is not None:
+            cd = data.category_details
+            details_payload = {
+                "cuisineTypes": cd.cuisine_types or [],
+                "mealTypes": cd.meal_types or [],
+                "avgSpendPerPerson": cd.avg_spend_per_person,
+                "dietaryOptions": cd.dietary_options,
+                "reservationSupported": cd.reservation_supported,
+                "reservationRequired": cd.reservation_required,
+                "seatingCapacity": cd.seating_capacity,
+                "indoorSeating": cd.indoor_seating,
+                "outdoorSeating": cd.outdoor_seating,
+                "takeawayAvailable": cd.takeaway_available,
+                "deliveryAvailable": cd.delivery_available,
+                "paymentMethods": cd.payment_methods or [],
+                "signatureDishes": cd.signature_dishes or [],
+            }
+            if existing.details:
+                await prisma.restaurantdetails.update(where={"id": existing.details.id}, data=details_payload)
+            else:
+                await prisma.restaurantdetails.create(data={"restaurantId": restaurant_id, **details_payload})
+
+        # Re-index in Qdrant (build searchable text from updated record)
+        updated = await prisma.restaurant.find_unique(
+            where={"id": restaurant_id},
+            include={"gallery": True, "tags": True, "menu": {"include": {"sections": {"include": {"items": True}}}}},
+        )
+        if updated:
+            try:
+                from app.modules.restaurants.services.create import QDRANT_COLLECTION
+                from app.shared.embeddings import embed_text, EMBED_OUTPUT_DIM
+                from app.shared.qdrant_client import ensure_collection, upsert_points
+                from qdrant_client.models import PointStruct
+
+                parts = [
+                    updated.name or "",
+                    getattr(updated, "shortDescription", None) or "",
+                    getattr(updated, "longDescription", None) or "",
+                    getattr(updated, "addressText", None) or "",
+                    updated.district or "",
+                    updated.province or "",
+                    updated.country or "",
+                ]
+                for t in updated.tags or []:
+                    parts.append(f"{t.tagType}: {t.tagValue}")
+                if updated.menu and updated.menu.sections:
+                    for s in updated.menu.sections:
+                        parts.append(s.name)
+                        for i in s.items or []:
+                            parts.append(i.name)
+                            if i.description:
+                                parts.append(i.description)
+                searchable = " ".join(p for p in parts if p).strip() or updated.name
+                if searchable:
+                    vectors = embed_text(searchable, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBED_OUTPUT_DIM)
+                    if vectors:
+                        ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
+                        upsert_points(
+                            QDRANT_COLLECTION,
+                            [
+                                PointStruct(
+                                    id=restaurant_id,
+                                    vector=vectors[0],
+                                    payload={"restaurant_id": restaurant_id, "name": updated.name, "slug": updated.slug, "type": "text"},
+                                )
+                            ],
+                        )
+            except Exception as e:
+                logger.warning("Qdrant re-index on update failed: %s", e)
+
+        out = _serialize_restaurant(
+            await prisma.restaurant.find_unique(
+                where={"id": restaurant_id},
+                include={"gallery": True, "tags": True, "policies": True, "translations": True, "hours": True, "menu": {"include": {"sections": {"include": {"items": True}}}}, "details": True},
+            )
+        )
+        return create_success_response(message="Restaurant updated successfully", data={"restaurant": out})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("update_restaurant error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

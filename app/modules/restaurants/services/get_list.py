@@ -22,32 +22,32 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "name": r.name,
         "slug": r.slug,
         "status": r.status,
-        "short_description": getattr(r, "shortDescription", None),
-        "long_description": getattr(r, "longDescription", None),
+        "short_description": r.short_description,
+        "long_description": r.long_description,
         "country": r.country,
         "province": r.province,
         "district": r.district,
         "village": r.village,
-        "address_text": getattr(r, "addressText", None),
+        "address_text": r.address_text,
         "latitude": r.latitude,
         "longitude": r.longitude,
-        "price_band": getattr(r, "priceBand", None),
+        "price_band": r.price_band,
         "currency": r.currency,
-        "min_price": getattr(r, "minPrice", None),
-        "max_price": getattr(r, "maxPrice", None),
-        "booking_supported": getattr(r, "bookingSupported", None),
-        "walk_in_supported": getattr(r, "walkInSupported", None),
-        "languages_supported": getattr(r, "languagesSupported", []),
-        "cover_image_url": getattr(r, "coverImageUrl", None),
-        "rating_avg": getattr(r, "ratingAvg", None),
-        "rating_count": getattr(r, "ratingCount", 0),
-        "trust_score": getattr(r, "trustScore", None),
-        "quality_score": getattr(r, "qualityScore", None),
-        "popularity_score": getattr(r, "popularityScore", None),
-        "created_at": r.createdAt.isoformat() if getattr(r, "createdAt", None) else None,
-        "updated_at": r.updatedAt.isoformat() if getattr(r, "updatedAt", None) else None,
+        "min_price": r.min_price,
+        "max_price": r.max_price,
+        "booking_supported": r.booking_supported,
+        "walk_in_supported": r.walk_in_supported,
+        "languages_supported": r.languages_supported or [],
+        "cover_image_url": r.cover_image_url,
+        "rating_avg": r.rating_avg,
+        "rating_count": r.rating_count or 0,
+        "trust_score": r.trust_score,
+        "quality_score": r.quality_score,
+        "popularity_score": r.popularity_score,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         "gallery": [{"url": g.url, "description": g.description} for g in (r.gallery or [])],
-        "tags": [{"tag_type": t.tagType, "tag_value": t.tagValue} for t in (r.tags or [])],
+        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
     }
 
 
@@ -65,10 +65,10 @@ def _build_where(filters: RestaurantFilters) -> Dict[str, Any]:
 
 
 def _order_clause(sort: Optional[str], order: str) -> Dict[str, str]:
-    sort_field = (sort or "created_at").replace("created_at", "createdAt").replace("updated_at", "updatedAt")
+    sort_field = sort or "created_at"
     if sort_field:
         return {sort_field: order}
-    return {"createdAt": "desc"}
+    return {"created_at": "desc"}
 
 
 async def get_restaurants(
@@ -82,8 +82,8 @@ async def get_restaurants(
         if search and search.strip():
             where["OR"] = [
                 {"name": {"contains": search.strip(), "mode": "insensitive"}},
-                {"shortDescription": {"contains": search.strip(), "mode": "insensitive"}},
-                {"longDescription": {"contains": search.strip(), "mode": "insensitive"}},
+                {"short_description": {"contains": search.strip(), "mode": "insensitive"}},
+                {"long_description": {"contains": search.strip(), "mode": "insensitive"}},
                 {"slug": {"contains": search.strip(), "mode": "insensitive"}},
             ]
         order = _order_clause(pagination.sort, pagination.order)

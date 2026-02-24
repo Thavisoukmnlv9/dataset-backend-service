@@ -7,54 +7,54 @@ from pydantic import BaseModel, Field
 
 
 class ListingCategoryEnum(str, Enum):
-    restaurant = "restaurant"
-    cafe = "cafe"
-    attraction = "attraction"
-    vehicle_rental = "vehicle_rental"
-    bar = "bar"
-    souvenir = "souvenir"
+    RESTAURANT = "RESTAURANT"
+    CAFE = "CAFE"
+    ATTRACTION = "ATTRACTION"
+    VEHICLE_RENTAL = "VEHICLE_RENTAL"
+    BAR = "BAR"
+    SOUVENIR = "SOUVENIR"
 
 
 class ListingStatusEnum(str, Enum):
-    active = "active"
-    inactive = "inactive"
-    draft = "draft"
-    archived = "archived"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    DRAFT = "DRAFT"
+    ARCHIVED = "ARCHIVED"
 
 
 class PriceBandEnum(str, Enum):
-    budget = "budget"
-    mid = "mid"
-    premium = "premium"
-    luxury = "luxury"
+    BUDGET = "BUDGET"
+    MID = "MID"
+    PREMIUM = "PREMIUM"
+    LUXURY = "LUXURY"
 
 
 class TagTypeEnum(str, Enum):
-    vibe = "vibe"
-    theme = "theme"
-    occasion = "occasion"
-    feature = "feature"
-    cuisine = "cuisine"
-    other = "other"
+    VIBE = "VIBE"
+    THEME = "THEME"
+    OCCASION = "OCCASION"
+    FEATURE = "FEATURE"
+    CUISINE = "CUISINE"
+    OTHER = "OTHER"
 
 
 class PolicyTypeEnum(str, Enum):
-    cancellation = "cancellation"
-    deposit = "deposit"
-    reservation = "reservation"
-    other = "other"
+    CANCELLATION = "CANCELLATION"
+    DEPOSIT = "DEPOSIT"
+    RESERVATION = "RESERVATION"
+    OTHER = "OTHER"
 
 
 class LanguageCodeEnum(str, Enum):
-    lo = "lo"
-    en = "en"
-    th = "th"
+    LO = "LO"
+    EN = "EN"
+    TH = "TH"
 
 
 class SpiceLevelEnum(str, Enum):
-    mild = "mild"
-    medium = "medium"
-    hot = "hot"
+    MILD = "MILD"
+    MEDIUM = "MEDIUM"
+    HOT = "HOT"
 
 
 # ── Nested / related ───────────────────────────────────────────────────────
@@ -142,10 +142,10 @@ class CategoryDetailsIn(BaseModel):
 class RestaurantCreate(BaseModel):
     """Payload to create a restaurant (e.g. from restaurant.json)."""
     id: Optional[str] = None  # If omitted, server can generate
-    category: ListingCategoryEnum = ListingCategoryEnum.restaurant
+    category: ListingCategoryEnum = ListingCategoryEnum.RESTAURANT
     name: str
     slug: str
-    status: ListingStatusEnum = ListingStatusEnum.active
+    status: ListingStatusEnum = ListingStatusEnum.ACTIVE
     short_description: Optional[str] = None
     long_description: Optional[str] = None
     country: str

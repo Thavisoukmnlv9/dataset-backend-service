@@ -90,9 +90,9 @@ model Session {
   impersonated_by     String?
   is_active           Boolean  @default(true)
   device_info         Json?
-  last_activity       DateTime @default(now()) 
-  is_trusted          Boolean  @default(false) 
-  security_level      String   @default("normal") 
+  last_activity       DateTime @default(now())
+  is_trusted          Boolean  @default(false)
+  security_level      String   @default("normal")
   user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([user_id])
@@ -168,52 +168,52 @@ model RateLimit {
 }
 
 model Restaurant {
-  id               String         @id
-  category         ListingCategory @default(restaurant)
-  name             String
-  slug             String         @unique
-  status           ListingStatus  @default(active)
+  id       String          @id
+  category ListingCategory @default(RESTAURANT)
+  name     String
+  slug     String          @unique
+  status   ListingStatus   @default(ACTIVE)
 
-  shortDescription String?
-  longDescription  String?
+  short_description String? @map("shortDescription")
+  long_description  String? @map("longDescription")
 
-  country          String
-  province         String
-  district         String
-  village          String?
-  addressText      String?
+  country      String
+  province     String
+  district     String
+  village      String?
+  address_text String? @map("addressText")
 
-  latitude         Float?
-  longitude        Float?
+  latitude  Float?
+  longitude Float?
 
-  priceBand        PriceBand?
-  currency         String?        // keep flexible (e.g., "LAK")
-  minPrice         Int?
-  maxPrice         Int?
+  price_band PriceBand? @map("priceBand")
+  currency   String? // keep flexible (e.g., "LAK")
+  min_price  Int?       @map("minPrice")
+  max_price  Int?       @map("maxPrice")
 
-  bookingSupported Boolean        @default(false)
-  walkInSupported  Boolean        @default(true)
+  booking_supported Boolean @default(false) @map("bookingSupported")
+  walk_in_supported Boolean @default(true) @map("walkInSupported")
 
-  languagesSupported LanguageCode[]
+  languages_supported LanguageCode[] @map("languagesSupported")
 
-  coverImageUrl    String?
-  ratingAvg        Float?
-  ratingCount      Int            @default(0)
+  cover_image_url String? @map("coverImageUrl")
+  rating_avg      Float?  @map("ratingAvg")
+  rating_count    Int     @default(0) @map("ratingCount")
 
-  trustScore       Int?
-  qualityScore     Int?
-  popularityScore  Int?
+  trust_score      Int? @map("trustScore")
+  quality_score    Int? @map("qualityScore")
+  popularity_score Int? @map("popularityScore")
 
-  gallery          RestaurantGalleryImage[]
-  tags             RestaurantTag[]
-  policies         RestaurantPolicy[]
-  translations     RestaurantTranslation[]
-  hours            RestaurantHours?
-  menu             RestaurantMenu?
-  details          RestaurantDetails?
+  gallery      RestaurantGalleryImage[]
+  tags         RestaurantTag[]
+  policies     RestaurantPolicy[]
+  translations RestaurantTranslation[]
+  hours        RestaurantHours?
+  menu         RestaurantMenu?
+  details      RestaurantDetails?
 
-  createdAt        DateTime
-  updatedAt        DateTime       @updatedAt
+  created_at DateTime @map("createdAt")
+  updated_at DateTime @updatedAt @map("updatedAt")
 
   @@index([province, district])
   @@index([status])
@@ -221,180 +221,181 @@ model Restaurant {
 }
 
 model RestaurantGalleryImage {
-  id           String     @id @default(cuid())
-  restaurantId String
-  url          String
-  description  String?
+  id            String  @id @default(cuid())
+  restaurant_id String  @map("restaurantId")
+  url           String
+  description   String?
 
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
-  @@index([restaurantId])
+  @@index([restaurant_id])
 }
 
 model RestaurantTag {
-  id           String     @id @default(cuid())
-  restaurantId String
-  tagType      TagType
-  tagValue     String
+  id            String  @id @default(cuid())
+  restaurant_id String  @map("restaurantId")
+  tag_type      TagType @map("tagType")
+  tag_value     String  @map("tagValue")
 
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
-  @@index([restaurantId])
-  @@index([tagType, tagValue])
+  @@index([restaurant_id])
+  @@index([tag_type, tag_value])
 }
 
 model RestaurantPolicy {
-  id           String     @id @default(cuid())
-  restaurantId String
-  policyType   PolicyType
-  policyText   String
+  id            String     @id @default(cuid())
+  restaurant_id String     @map("restaurantId")
+  policy_type   PolicyType @map("policyType")
+  policy_text   String     @map("policyText")
 
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
-  @@index([restaurantId])
-  @@index([policyType])
+  @@index([restaurant_id])
+  @@index([policy_type])
 }
 
 model RestaurantTranslation {
-  id           String       @id @default(cuid())
-  restaurantId String
-  language     LanguageCode
+  id            String       @id @default(cuid())
+  restaurant_id String       @map("restaurantId")
+  language      LanguageCode
 
-  name             String?
-  shortDescription String?
+  name              String?
+  short_description String? @map("shortDescription")
 
-  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
-  @@unique([restaurantId, language])
+  @@unique([restaurant_id, language])
   @@index([language])
 }
 
 model RestaurantHours {
-  id            String     @id @default(cuid())
-  restaurantId  String     @unique
-  weeklySchedule Json
-  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  id              String     @id @default(cuid())
+  restaurant_id   String     @unique @map("restaurantId")
+  weekly_schedule Json       @map("weeklySchedule")
+  restaurant      Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 }
 
 model RestaurantMenu {
-  id            String     @id @default(cuid())
-  restaurantId  String     @unique
+  id            String @id @default(cuid())
+  restaurant_id String @unique @map("restaurantId")
 
-  sourceType    String
-  sourceVersion String?
-  sourceUrl     String?
-  language      LanguageCode?
-  extractedAt   DateTime?
-  metadata      Json?
+  source_type    String        @map("sourceType")
+  source_version String?       @map("sourceVersion")
+  source_url     String?       @map("sourceUrl")
+  language       LanguageCode?
+  extracted_at   DateTime?     @map("extractedAt")
+  metadata       Json?
 
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  sections      MenuSection[]
+  restaurant Restaurant    @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  sections   MenuSection[]
 
-  @@index([restaurantId])
+  @@index([restaurant_id])
 }
 
 model MenuSection {
-  id        String         @id @default(cuid())
-  menuId    String
-  name      String
-  sortOrder Int            @default(0)
+  id         String @id @default(cuid())
+  menu_id    String @map("menuId")
+  name       String
+  sort_order Int    @default(0) @map("sortOrder")
 
-  menu      RestaurantMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  items     MenuItem[]
+  menu  RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items MenuItem[]
 
-  @@index([menuId])
+  @@index([menu_id])
 }
 
 model MenuItem {
-  id              String      @id @default(cuid())
-  sectionId        String
-  itemId           String?     // keeps your "menu_001" etc (external id)
+  id         String  @id @default(cuid())
+  section_id String  @map("sectionId")
+  item_id    String? @map("itemId")
 
-  name             String
-  description      String?
-  price            Int?
-  currency         String? 
-  imageUrl         String?
-  imageDescription String?
-  dietary          Json?
-  spiceLevel       SpiceLevel?
-  allergens        String[]    // e.g. ["fish_sauce", "peanut"]
-  tags             String[]    // e.g. ["dip", "local"]
-  section          MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  @@index([sectionId])
-  @@index([itemId])
+  name              String
+  description       String?
+  price             Int?
+  currency          String?
+  image_url         String?     @map("imageUrl")
+  image_description String?     @map("imageDescription")
+  dietary           Json?
+  spice_level       SpiceLevel? @map("spiceLevel")
+  allergens         String[]
+  tags              String[]
+  section           MenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@index([item_id])
 }
 
 model RestaurantDetails {
-  id                  String     @id @default(cuid())
-  restaurantId        String     @unique
-  cuisineTypes        String[]
-  mealTypes           String[]
-  avgSpendPerPerson   Int?
-  dietaryOptions      Json?
-  reservationSupported Boolean   @default(false)
-  reservationRequired  Boolean   @default(false)
-  seatingCapacity     Int?
-  indoorSeating       Boolean    @default(false)
-  outdoorSeating      Boolean    @default(false)
-  takeawayAvailable   Boolean    @default(false)
-  deliveryAvailable   Boolean    @default(false)
-  paymentMethods      String[]
-  signatureDishes     String[]
-  restaurant          Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  @@index([restaurantId])
+  id                    String     @id @default(cuid())
+  restaurant_id         String     @unique @map("restaurantId")
+  cuisine_types         String[]   @map("cuisineTypes")
+  meal_types            String[]   @map("mealTypes")
+  avg_spend_per_person  Int?       @map("avgSpendPerPerson")
+  dietary_options       Json?      @map("dietaryOptions")
+  reservation_supported Boolean    @default(false) @map("reservationSupported")
+  reservation_required  Boolean    @default(false) @map("reservationRequired")
+  seating_capacity      Int?       @map("seatingCapacity")
+  indoor_seating        Boolean    @default(false) @map("indoorSeating")
+  outdoor_seating       Boolean    @default(false) @map("outdoorSeating")
+  takeaway_available    Boolean    @default(false) @map("takeawayAvailable")
+  delivery_available    Boolean    @default(false) @map("deliveryAvailable")
+  payment_methods       String[]   @map("paymentMethods")
+  signature_dishes      String[]   @map("signatureDishes")
+  restaurant            Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([restaurant_id])
 }
 
-
 enum ListingCategory {
-  restaurant
-  cafe
-  attraction
-  vehicle_rental
-  bar
-  souvenir
+  RESTAURANT
+  CAFE
+  ATTRACTION
+  VEHICLE_RENTAL
+  BAR
+  SOUVENIR
 }
 
 enum ListingStatus {
-  active
-  inactive
-  draft
-  archived
+  ACTIVE
+  INACTIVE
+  DRAFT
+  ARCHIVED
 }
 
 enum PriceBand {
-  budget
-  mid
-  premium
-  luxury
+  BUDGET
+  MID
+  PREMIUM
+  LUXURY
 }
 
 enum TagType {
-  vibe
-  theme
-  occasion
-  feature
-  cuisine
-  other
+  VIBE
+  THEME
+  OCCASION
+  FEATURE
+  CUISINE
+  OTHER
 }
 
 enum PolicyType {
-  cancellation
-  deposit
-  reservation
-  other
+  CANCELLATION
+  DEPOSIT
+  RESERVATION
+  OTHER
 }
 
 enum LanguageCode {
-  lo
-  en
-  th
+  LO
+  EN
+  TH
 }
 
 enum SpiceLevel {
-  mild
-  medium
-  hot
+  MILD
+  MEDIUM
+  HOT
 }
 
 enum UserRole {

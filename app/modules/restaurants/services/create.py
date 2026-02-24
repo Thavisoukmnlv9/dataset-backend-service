@@ -167,37 +167,37 @@ async def create_restaurant(
                     detail="Restaurant with this slug already exists",
                 )
 
-            # Build nested create
+            # Build nested create (snake_case field names)
             create_data: Dict[str, Any] = {
                 "id": rest_id,
                 "category": data.category.value,
                 "name": data.name,
                 "slug": data.slug,
                 "status": data.status.value,
-                "shortDescription": data.short_description,
-                "longDescription": data.long_description,
+                "short_description": data.short_description,
+                "long_description": data.long_description,
                 "country": data.country,
                 "province": data.province,
                 "district": data.district,
                 "village": data.village,
-                "addressText": data.address_text,
+                "address_text": data.address_text,
                 "latitude": data.latitude,
                 "longitude": data.longitude,
-                "priceBand": data.price_band.value if data.price_band else None,
+                "price_band": data.price_band.value if data.price_band else None,
                 "currency": data.currency,
-                "minPrice": data.min_price,
-                "maxPrice": data.max_price,
-                "bookingSupported": data.booking_supported,
-                "walkInSupported": data.walk_in_supported,
-                "languagesSupported": _to_prisma_languages(data.languages_supported),
-                "coverImageUrl": data.cover_image_url,
-                "ratingAvg": data.rating_avg,
-                "ratingCount": data.rating_count or 0,
-                "trustScore": data.trust_score,
-                "qualityScore": data.quality_score,
-                "popularityScore": data.popularity_score,
-                "createdAt": data.created_at or now,
-                "updatedAt": now,
+                "min_price": data.min_price,
+                "max_price": data.max_price,
+                "booking_supported": data.booking_supported,
+                "walk_in_supported": data.walk_in_supported,
+                "languages_supported": _to_prisma_languages(data.languages_supported),
+                "cover_image_url": data.cover_image_url,
+                "rating_avg": data.rating_avg,
+                "rating_count": data.rating_count or 0,
+                "trust_score": data.trust_score,
+                "quality_score": data.quality_score,
+                "popularity_score": data.popularity_score,
+                "created_at": data.created_at or now,
+                "updated_at": now,
             }
 
             if data.gallery_urls:
@@ -210,14 +210,14 @@ async def create_restaurant(
             if data.tags:
                 create_data["tags"] = {
                     "create": [
-                        {"tagType": t.tag_type.value, "tagValue": t.tag_value}
+                        {"tag_type": t.tag_type.value, "tag_value": t.tag_value}
                         for t in data.tags
                     ]
                 }
             if data.policies:
                 create_data["policies"] = {
                     "create": [
-                        {"policyType": p.policy_type.value, "policyText": p.policy_text}
+                        {"policy_type": p.policy_type.value, "policy_text": p.policy_text}
                         for p in data.policies
                     ]
                 }
@@ -226,12 +226,12 @@ async def create_restaurant(
                 for lang, tr in data.translations.items():
                     name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
                     short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
-                    trans_list.append({"language": lang, "name": name, "shortDescription": short})
+                    trans_list.append({"language": lang, "name": name, "short_description": short})
                 create_data["translations"] = {"create": trans_list}
 
             if data.hours and getattr(data.hours, "weekly_schedule", None):
                 create_data["hours"] = {
-                    "create": {"weeklySchedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}
+                    "create": {"weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}
                 }
 
             if data.menu:
@@ -241,30 +241,30 @@ async def create_restaurant(
                     items_create = []
                     for item in sec.items or []:
                         items_create.append({
-                            "itemId": item.item_id,
+                            "item_id": item.item_id,
                             "name": item.name,
                             "description": item.description,
                             "price": item.price,
                             "currency": item.currency,
-                            "imageUrl": item.image_url,
-                            "imageDescription": item.image_description,
+                            "image_url": item.image_url,
+                            "image_description": item.image_description,
                             "dietary": PrismaJson(item.dietary) if item.dietary is not None else None,
-                            "spiceLevel": item.spice_level.value if item.spice_level else None,
+                            "spice_level": item.spice_level.value if item.spice_level else None,
                             "allergens": item.allergens or [],
                             "tags": item.tags or [],
                         })
                     sections_create.append({
                         "name": sec.section_name,
-                        "sortOrder": i,
+                        "sort_order": i,
                         "items": {"create": items_create},
                     })
                 create_data["menu"] = {
                     "create": {
-                        "sourceType": menu.source_type,
-                        "sourceVersion": menu.source_version,
-                        "sourceUrl": menu.source_url,
+                        "source_type": menu.source_type,
+                        "source_version": menu.source_version,
+                        "source_url": menu.source_url,
                         "language": menu.language.value if menu.language else None,
-                        "extractedAt": menu.extracted_at,
+                        "extracted_at": menu.extracted_at,
                         "metadata": PrismaJson(menu.metadata) if menu.metadata is not None else None,
                         "sections": {"create": sections_create},
                     }
@@ -274,19 +274,19 @@ async def create_restaurant(
                 cd = data.category_details
                 create_data["details"] = {
                     "create": {
-                        "cuisineTypes": cd.cuisine_types or [],
-                        "mealTypes": cd.meal_types or [],
-                        "avgSpendPerPerson": cd.avg_spend_per_person,
-                        "dietaryOptions": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
-                        "reservationSupported": cd.reservation_supported,
-                        "reservationRequired": cd.reservation_required,
-                        "seatingCapacity": cd.seating_capacity,
-                        "indoorSeating": cd.indoor_seating,
-                        "outdoorSeating": cd.outdoor_seating,
-                        "takeawayAvailable": cd.takeaway_available,
-                        "deliveryAvailable": cd.delivery_available,
-                        "paymentMethods": cd.payment_methods or [],
-                        "signatureDishes": cd.signature_dishes or [],
+                        "cuisine_types": cd.cuisine_types or [],
+                        "meal_types": cd.meal_types or [],
+                        "avg_spend_per_person": cd.avg_spend_per_person,
+                        "dietary_options": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
+                        "reservation_supported": cd.reservation_supported,
+                        "reservation_required": cd.reservation_required,
+                        "seating_capacity": cd.seating_capacity,
+                        "indoor_seating": cd.indoor_seating,
+                        "outdoor_seating": cd.outdoor_seating,
+                        "takeaway_available": cd.takeaway_available,
+                        "delivery_available": cd.delivery_available,
+                        "payment_methods": cd.payment_methods or [],
+                        "signature_dishes": cd.signature_dishes or [],
                     }
                 }
 
@@ -369,35 +369,35 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "name": r.name,
         "slug": r.slug,
         "status": r.status,
-        "short_description": getattr(r, "shortDescription", None),
-        "long_description": getattr(r, "longDescription", None),
+        "short_description": r.short_description,
+        "long_description": r.long_description,
         "country": r.country,
         "province": r.province,
         "district": r.district,
         "village": r.village,
-        "address_text": getattr(r, "addressText", None),
+        "address_text": r.address_text,
         "latitude": r.latitude,
         "longitude": r.longitude,
-        "price_band": getattr(r, "priceBand", None),
+        "price_band": r.price_band,
         "currency": r.currency,
-        "min_price": getattr(r, "minPrice", None),
-        "max_price": getattr(r, "maxPrice", None),
-        "booking_supported": getattr(r, "bookingSupported", None),
-        "walk_in_supported": getattr(r, "walkInSupported", None),
-        "languages_supported": getattr(r, "languagesSupported", []),
-        "cover_image_url": getattr(r, "coverImageUrl", None),
-        "rating_avg": getattr(r, "ratingAvg", None),
-        "rating_count": getattr(r, "ratingCount", 0),
-        "trust_score": getattr(r, "trustScore", None),
-        "quality_score": getattr(r, "qualityScore", None),
-        "popularity_score": getattr(r, "popularityScore", None),
-        "created_at": r.createdAt.isoformat() if getattr(r, "createdAt", None) else None,
-        "updated_at": r.updatedAt.isoformat() if getattr(r, "updatedAt", None) else None,
+        "min_price": r.min_price,
+        "max_price": r.max_price,
+        "booking_supported": r.booking_supported,
+        "walk_in_supported": r.walk_in_supported,
+        "languages_supported": r.languages_supported or [],
+        "cover_image_url": r.cover_image_url,
+        "rating_avg": r.rating_avg,
+        "rating_count": r.rating_count or 0,
+        "trust_score": r.trust_score,
+        "quality_score": r.quality_score,
+        "popularity_score": r.popularity_score,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         "gallery": [{"url": g.url, "description": g.description} for g in (r.gallery or [])],
-        "tags": [{"tag_type": t.tagType, "tag_value": t.tagValue} for t in (r.tags or [])],
-        "policies": [{"policy_type": p.policyType, "policy_text": p.policyText} for p in (r.policies or [])],
-        "translations": {t.language: {"name": t.name, "short_description": t.shortDescription} for t in (r.translations or [])},
-        "hours": {"weekly_schedule": r.hours.weeklySchedule} if r.hours else None,
+        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
+        "policies": [{"policy_type": p.policy_type, "policy_text": p.policy_text} for p in (r.policies or [])],
+        "translations": {t.language: {"name": t.name, "short_description": t.short_description} for t in (r.translations or [])},
+        "hours": {"weekly_schedule": r.hours.weekly_schedule} if r.hours else None,
         "menu": _serialize_menu(r.menu) if r.menu else None,
         "category_details": _serialize_details(r.details) if r.details else None,
     }
@@ -408,11 +408,11 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
         return None
     sections = []
     for s in getattr(m, "sections", []) or []:
-        items = [{"item_id": i.itemId, "name": i.name, "description": i.description, "price": i.price, "currency": i.currency} for i in (s.items or [])]
+        items = [{"item_id": i.item_id, "name": i.name, "description": i.description, "price": i.price, "currency": i.currency} for i in (s.items or [])]
         sections.append({"section_name": s.name, "items": items})
     return {
-        "source_type": m.sourceType,
-        "source_url": m.sourceUrl,
+        "source_type": m.source_type,
+        "source_url": m.source_url,
         "language": m.language,
         "sections": sections,
     }
@@ -423,17 +423,17 @@ def _serialize_details(d: Any) -> Optional[Dict[str, Any]]:
     if not d:
         return None
     return {
-        "cuisine_types": getattr(d, "cuisineTypes", []) or [],
-        "meal_types": getattr(d, "mealTypes", []) or [],
-        "avg_spend_per_person": getattr(d, "avgSpendPerPerson", None),
-        "dietary_options": getattr(d, "dietaryOptions", None),
-        "reservation_supported": getattr(d, "reservationSupported", False),
-        "reservation_required": getattr(d, "reservationRequired", False),
-        "seating_capacity": getattr(d, "seatingCapacity", None),
-        "indoor_seating": getattr(d, "indoorSeating", False),
-        "outdoor_seating": getattr(d, "outdoorSeating", False),
-        "takeaway_available": getattr(d, "takeawayAvailable", False),
-        "delivery_available": getattr(d, "deliveryAvailable", False),
-        "payment_methods": getattr(d, "paymentMethods", []) or [],
-        "signature_dishes": getattr(d, "signatureDishes", []) or [],
+        "cuisine_types": d.cuisine_types or [],
+        "meal_types": d.meal_types or [],
+        "avg_spend_per_person": d.avg_spend_per_person,
+        "dietary_options": d.dietary_options,
+        "reservation_supported": d.reservation_supported,
+        "reservation_required": d.reservation_required,
+        "seating_capacity": d.seating_capacity,
+        "indoor_seating": d.indoor_seating,
+        "outdoor_seating": d.outdoor_seating,
+        "takeaway_available": d.takeaway_available,
+        "delivery_available": d.delivery_available,
+        "payment_methods": d.payment_methods or [],
+        "signature_dishes": d.signature_dishes or [],
     }

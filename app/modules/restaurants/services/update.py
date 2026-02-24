@@ -42,7 +42,7 @@ async def update_restaurant(
             if result.success and result.data:
                 await prisma.restaurantmenu.update(
                     where={"id": existing.menu.id},
-                    data={"sourceUrl": result.data.get("object_name")},
+                    data={"source_url": result.data.get("object_name")},
                 )
         if gallery_files:
             new_gallery = []
@@ -53,9 +53,9 @@ async def update_restaurant(
                 if result.success and result.data:
                     new_gallery.append({"url": result.data.get("object_name"), "description": None})
             if new_gallery:
-                await prisma.restaurantgalleryimage.delete_many(where={"restaurantId": restaurant_id})
+                await prisma.restaurantgalleryimage.delete_many(where={"restaurant_id": restaurant_id})
                 await prisma.restaurantgalleryimage.create_many(
-                    data=[{"restaurantId": restaurant_id, "url": g["url"], "description": g.get("description")} for g in new_gallery]
+                    data=[{"restaurant_id": restaurant_id, "url": g["url"], "description": g.get("description")} for g in new_gallery]
                 )
 
         # Build update payload (only set provided fields)
@@ -70,9 +70,9 @@ async def update_restaurant(
         if data.status is not None:
             update_payload["status"] = data.status.value
         if data.short_description is not None:
-            update_payload["shortDescription"] = data.short_description
+            update_payload["short_description"] = data.short_description
         if data.long_description is not None:
-            update_payload["longDescription"] = data.long_description
+            update_payload["long_description"] = data.long_description
         if data.country is not None:
             update_payload["country"] = data.country
         if data.province is not None:
@@ -82,53 +82,53 @@ async def update_restaurant(
         if data.village is not None:
             update_payload["village"] = data.village
         if data.address_text is not None:
-            update_payload["addressText"] = data.address_text
+            update_payload["address_text"] = data.address_text
         if data.latitude is not None:
             update_payload["latitude"] = data.latitude
         if data.longitude is not None:
             update_payload["longitude"] = data.longitude
         if data.price_band is not None:
-            update_payload["priceBand"] = data.price_band.value
+            update_payload["price_band"] = data.price_band.value
         if data.currency is not None:
             update_payload["currency"] = data.currency
         if data.min_price is not None:
-            update_payload["minPrice"] = data.min_price
+            update_payload["min_price"] = data.min_price
         if data.max_price is not None:
-            update_payload["maxPrice"] = data.max_price
+            update_payload["max_price"] = data.max_price
         if data.booking_supported is not None:
-            update_payload["bookingSupported"] = data.booking_supported
+            update_payload["booking_supported"] = data.booking_supported
         if data.walk_in_supported is not None:
-            update_payload["walkInSupported"] = data.walk_in_supported
+            update_payload["walk_in_supported"] = data.walk_in_supported
         if data.languages_supported is not None:
-            update_payload["languagesSupported"] = [c.value for c in data.languages_supported]
+            update_payload["languages_supported"] = [c.value for c in data.languages_supported]
         if data.cover_image_url is not None:
-            update_payload["coverImageUrl"] = data.cover_image_url
+            update_payload["cover_image_url"] = data.cover_image_url
         if data.rating_avg is not None:
-            update_payload["ratingAvg"] = data.rating_avg
+            update_payload["rating_avg"] = data.rating_avg
         if data.rating_count is not None:
-            update_payload["ratingCount"] = data.rating_count
+            update_payload["rating_count"] = data.rating_count
         if data.trust_score is not None:
-            update_payload["trustScore"] = data.trust_score
+            update_payload["trust_score"] = data.trust_score
         if data.quality_score is not None:
-            update_payload["qualityScore"] = data.quality_score
+            update_payload["quality_score"] = data.quality_score
         if data.popularity_score is not None:
-            update_payload["popularityScore"] = data.popularity_score
+            update_payload["popularity_score"] = data.popularity_score
 
         if update_payload:
             await prisma.restaurant.update(where={"id": restaurant_id}, data=update_payload)
 
         # Tags, policies, hours, menu, details: simplified - only replace if provided
         if data.tags is not None:
-            await prisma.restauranttag.delete_many(where={"restaurantId": restaurant_id})
+            await prisma.restauranttag.delete_many(where={"restaurant_id": restaurant_id})
             if data.tags:
                 await prisma.restauranttag.create_many(
-                    data=[{"restaurantId": restaurant_id, "tagType": t.tag_type.value, "tagValue": t.tag_value} for t in data.tags]
+                    data=[{"restaurant_id": restaurant_id, "tag_type": t.tag_type.value, "tag_value": t.tag_value} for t in data.tags]
                 )
         if data.policies is not None:
-            await prisma.restaurantpolicy.delete_many(where={"restaurantId": restaurant_id})
+            await prisma.restaurantpolicy.delete_many(where={"restaurant_id": restaurant_id})
             if data.policies:
                 await prisma.restaurantpolicy.create_many(
-                    data=[{"restaurantId": restaurant_id, "policyType": p.policy_type.value, "policyText": p.policy_text} for p in data.policies]
+                    data=[{"restaurant_id": restaurant_id, "policy_type": p.policy_type.value, "policy_text": p.policy_text} for p in data.policies]
                 )
         if data.hours is not None and data.hours.weekly_schedule:
             from app.modules.restaurants.services.create import _to_prisma_weekly_schedule
@@ -136,41 +136,41 @@ async def update_restaurant(
             if existing.hours:
                 await prisma.restauranthours.update(
                     where={"id": existing.hours.id},
-                    data={"weeklySchedule": hours_json},
+                    data={"weekly_schedule": hours_json},
                 )
             else:
                 await prisma.restauranthours.create(
-                    data={"restaurantId": restaurant_id, "weeklySchedule": hours_json},
+                    data={"restaurant_id": restaurant_id, "weekly_schedule": hours_json},
                 )
         if data.translations is not None:
-            await prisma.restauranttranslation.delete_many(where={"restaurantId": restaurant_id})
+            await prisma.restauranttranslation.delete_many(where={"restaurant_id": restaurant_id})
             for lang, tr in data.translations.items():
                 name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
                 short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
                 await prisma.restauranttranslation.create(
-                    data={"restaurantId": restaurant_id, "language": lang, "name": name, "shortDescription": short},
+                    data={"restaurant_id": restaurant_id, "language": lang, "name": name, "short_description": short},
                 )
         if data.category_details is not None:
             cd = data.category_details
             details_payload = {
-                "cuisineTypes": cd.cuisine_types or [],
-                "mealTypes": cd.meal_types or [],
-                "avgSpendPerPerson": cd.avg_spend_per_person,
-                "dietaryOptions": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
-                "reservationSupported": cd.reservation_supported,
-                "reservationRequired": cd.reservation_required,
-                "seatingCapacity": cd.seating_capacity,
-                "indoorSeating": cd.indoor_seating,
-                "outdoorSeating": cd.outdoor_seating,
-                "takeawayAvailable": cd.takeaway_available,
-                "deliveryAvailable": cd.delivery_available,
-                "paymentMethods": cd.payment_methods or [],
-                "signatureDishes": cd.signature_dishes or [],
+                "cuisine_types": cd.cuisine_types or [],
+                "meal_types": cd.meal_types or [],
+                "avg_spend_per_person": cd.avg_spend_per_person,
+                "dietary_options": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
+                "reservation_supported": cd.reservation_supported,
+                "reservation_required": cd.reservation_required,
+                "seating_capacity": cd.seating_capacity,
+                "indoor_seating": cd.indoor_seating,
+                "outdoor_seating": cd.outdoor_seating,
+                "takeaway_available": cd.takeaway_available,
+                "delivery_available": cd.delivery_available,
+                "payment_methods": cd.payment_methods or [],
+                "signature_dishes": cd.signature_dishes or [],
             }
             if existing.details:
                 await prisma.restaurantdetails.update(where={"id": existing.details.id}, data=details_payload)
             else:
-                await prisma.restaurantdetails.create(data={"restaurantId": restaurant_id, **details_payload})
+                await prisma.restaurantdetails.create(data={"restaurant_id": restaurant_id, **details_payload})
 
         # Re-index in Qdrant (build searchable text from updated record)
         updated = await prisma.restaurant.find_unique(
@@ -186,15 +186,15 @@ async def update_restaurant(
 
                 parts = [
                     updated.name or "",
-                    getattr(updated, "shortDescription", None) or "",
-                    getattr(updated, "longDescription", None) or "",
-                    getattr(updated, "addressText", None) or "",
+                    updated.short_description or "",
+                    updated.long_description or "",
+                    updated.address_text or "",
                     updated.district or "",
                     updated.province or "",
                     updated.country or "",
                 ]
                 for t in updated.tags or []:
-                    parts.append(f"{t.tagType}: {t.tagValue}")
+                    parts.append(f"{t.tag_type}: {t.tag_value}")
                 if updated.menu and updated.menu.sections:
                     for s in updated.menu.sections:
                         parts.append(s.name)

@@ -183,22 +183,9 @@ async def get_restaurant(restaurant_id: str, _user=Depends(get_current_active_us
     description="Create restaurant. Send multipart/form-data: either (1) data=JSON string + file fields, or (2) flat form fields + JSON strings for gallery_urls, tags, hours, menu, etc. + file fields: cover_image_file, gallery_urls.url_file[0], menu.sections[i].items[j].image_file.",
 )
 async def create_restaurant(request: Request, admin_user=Depends(get_admin_user)):
-    """
-    Create restaurant. Send as **multipart/form-data** in one of two ways:
-
-    **Option A – single JSON body**
-    - **data** (required): JSON string with the same structure as `restaurant.json`.
-    - **cover_image_file**, **menu_source_file**, **gallery_0**..**gallery_4** (or **gallery_urls.url_file[0]** etc.): optional files.
-
-    **Option B – flat form fields**
-    - Scalar fields: category, name, slug, status, short_description, long_description, country, province, district, village, address_text, latitude, longitude, price_band, currency, min_price, max_price, booking_supported, walk_in_supported, rating_avg, rating_count, trust_score, quality_score, popularity_score.
-    - JSON-string fields: languages_supported, gallery_urls, tags, hours, policies, translations, menu, category_details.
-    - Files: **cover_image_file**; **gallery_urls.url_file[0]**, **gallery_urls.url_file[1]** (or **gallery_0**, **gallery_1**, ...); **menu.sections[0].items[0].image_file**, **menu.sections[0].items[1].image_file**, etc.; **menu_source_file** (optional).
-
-    Data is stored in PostgreSQL and indexed in Qdrant.
-    """
+     
     from app.modules.restaurants.services.create import create_restaurant as _create
-
+    
     form = await request.form()
     form_dict = dict(form)
 

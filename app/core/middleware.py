@@ -8,6 +8,7 @@ first ``add_middleware`` call becomes the *outermost* layer.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.request_context import RequestContextMiddleware
+from app.core.request_body_logger import RequestBodyLoggingMiddleware
 from app.core.security_middleware import SecurityHeadersMiddleware
 from app.shared.middleware.sanitization_middleware import SanitizationMiddleware
 from app.core.config import settings
@@ -16,6 +17,7 @@ from app.core.config import settings
 def setup_middleware(app: FastAPI):
     """Configure all middleware for the FastAPI app."""
     app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(RequestBodyLoggingMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
 
     cors_origins = settings.cors_origins

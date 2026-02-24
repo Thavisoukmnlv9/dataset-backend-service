@@ -163,7 +163,7 @@ class RestaurantCreate(BaseModel):
     walk_in_supported: bool = True
     languages_supported: List[LanguageCodeEnum] = Field(default_factory=list)
     cover_image_url: Optional[str] = None
-    cover_image_file: Optional[Any] = None  # multipart placeholder; send file as cover_image_file form field
+    cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
     rating_avg: Optional[float] = None
     rating_count: int = 0

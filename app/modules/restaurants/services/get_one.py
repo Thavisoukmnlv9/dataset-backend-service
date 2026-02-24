@@ -48,7 +48,7 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "translations": {t.language: {"name": t.name, "short_description": t.shortDescription} for t in (r.translations or [])},
         "hours": {"weekly_schedule": r.hours.weeklySchedule} if r.hours else None,
         "menu": _serialize_menu(r.menu) if r.menu else None,
-        "details": _serialize_details(r.details) if r.details else None,
+        "category_details": _serialize_details(r.details) if r.details else None,
     }
 
 
@@ -71,13 +71,23 @@ def _serialize_menu(m: Any) -> Any:
 
 
 def _serialize_details(d: Any) -> Any:
+    """Serialize RestaurantDetails to category_details shape (restaurant.json)."""
     if not d:
         return None
     return {
-        "cuisine_types": d.cuisineTypes,
-        "meal_types": d.mealTypes,
-        "payment_methods": d.paymentMethods,
-        "signature_dishes": d.signatureDishes,
+        "cuisine_types": getattr(d, "cuisineTypes", []) or [],
+        "meal_types": getattr(d, "mealTypes", []) or [],
+        "avg_spend_per_person": getattr(d, "avgSpendPerPerson", None),
+        "dietary_options": getattr(d, "dietaryOptions", None),
+        "reservation_supported": getattr(d, "reservationSupported", False),
+        "reservation_required": getattr(d, "reservationRequired", False),
+        "seating_capacity": getattr(d, "seatingCapacity", None),
+        "indoor_seating": getattr(d, "indoorSeating", False),
+        "outdoor_seating": getattr(d, "outdoorSeating", False),
+        "takeaway_available": getattr(d, "takeawayAvailable", False),
+        "delivery_available": getattr(d, "deliveryAvailable", False),
+        "payment_methods": getattr(d, "paymentMethods", []) or [],
+        "signature_dishes": getattr(d, "signatureDishes", []) or [],
     }
 
 

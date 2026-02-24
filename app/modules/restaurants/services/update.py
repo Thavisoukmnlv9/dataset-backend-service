@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status, UploadFile
 
 from app.prisma import prisma
+from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
@@ -131,14 +132,15 @@ async def update_restaurant(
                 )
         if data.hours is not None and data.hours.weekly_schedule:
             from app.modules.restaurants.services.create import _to_prisma_weekly_schedule
+            hours_json = PrismaJson(_to_prisma_weekly_schedule(data.hours))
             if existing.hours:
                 await prisma.restauranthours.update(
                     where={"id": existing.hours.id},
-                    data={"weeklySchedule": _to_prisma_weekly_schedule(data.hours)},
+                    data={"weeklySchedule": hours_json},
                 )
             else:
                 await prisma.restauranthours.create(
-                    data={"restaurantId": restaurant_id, "weeklySchedule": _to_prisma_weekly_schedule(data.hours)},
+                    data={"restaurantId": restaurant_id, "weeklySchedule": hours_json},
                 )
         if data.translations is not None:
             await prisma.restauranttranslation.delete_many(where={"restaurantId": restaurant_id})
@@ -154,7 +156,7 @@ async def update_restaurant(
                 "cuisineTypes": cd.cuisine_types or [],
                 "mealTypes": cd.meal_types or [],
                 "avgSpendPerPerson": cd.avg_spend_per_person,
-                "dietaryOptions": cd.dietary_options,
+                "dietaryOptions": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
                 "reservationSupported": cd.reservation_supported,
                 "reservationRequired": cd.reservation_required,
                 "seatingCapacity": cd.seating_capacity,

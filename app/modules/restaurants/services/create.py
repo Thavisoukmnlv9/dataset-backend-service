@@ -1,18 +1,18 @@
 """
 Create restaurant: PostgreSQL + Qdrant indexing with embed_text (and optional embed_image).
 
-The API accepts multipart/form-data: a required `data` part (JSON string with the same
-structure as restaurant.json) plus optional file parts (cover_image_file, menu_source_file,
-gallery_0, gallery_1, ...). File placeholder keys in the JSON (cover_image_file, url_file,
-source_file, image_file) should be null or omitted; actual files are sent as form fields.
+The API accepts multipart/form-data: either a single `data` JSON string plus file parts, or
+flat form fields plus JSON strings for complex fields. File parts: cover_image_file,
+menu_source_file, gallery_0 / gallery_urls.url_file[0], ..., menu.sections[i].items[j].image_file.
 """
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, status, UploadFile
 
 from app.prisma import prisma
+from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.embeddings import embed_text, embed_image, EMBED_OUTPUT_DIM
 from app.shared.qdrant_client import ensure_collection, upsert_points
 from app.shared.utils.responses.response import create_success_response
@@ -86,6 +86,16 @@ async def _upload_gallery_files(files: List[UploadFile]) -> List[GalleryImageIn]
     return out
 
 
+async def _upload_single_file(file: UploadFile, path_prefix: str) -> Optional[str]:
+    """Upload one file to path_prefix and return object_name, or None."""
+    if not file or not file.filename:
+        return None
+    result = await storage_service.upload_file(file, path_prefix)
+    if result.success and result.data:
+        return result.data.get("object_name")
+    return None
+
+
 def _to_prisma_languages(codes: List[Any]) -> List[str]:
     return [c.value if hasattr(c, "value") else str(c) for c in codes]
 
@@ -101,6 +111,7 @@ async def create_restaurant(
     cover_image_file: Optional[UploadFile] = None,
     menu_source_file: Optional[UploadFile] = None,
     gallery_files: Optional[List[UploadFile]] = None,
+    menu_item_files: Optional[Dict[Tuple[int, int], UploadFile]] = None,
 ) -> Dict[str, Any]:
     """
     Create restaurant in PostgreSQL and index in Qdrant.
@@ -124,9 +135,22 @@ async def create_restaurant(
     menu_source_url = await _upload_menu_source(menu_source_file)
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
     if gallery_uploaded:
-        data.gallery_urls = gallery_uploaded
+        # Merge uploaded URLs with existing gallery_urls (from flat form) so descriptions are kept
+        if data.gallery_urls and len(data.gallery_urls) >= len(gallery_uploaded):
+            for i, gu in enumerate(gallery_uploaded):
+                data.gallery_urls[i].url = gu.url
+        else:
+            data.gallery_urls = gallery_uploaded
     if menu_source_url and data.menu:
         data.menu.source_url = menu_source_url
+
+    # Upload menu item images (menu.sections[sec].items[item].image_file)
+    if menu_item_files and data.menu and data.menu.sections:
+        for (sec_idx, item_idx), file in sorted(menu_item_files.items()):
+            if sec_idx < len(data.menu.sections) and item_idx < len(data.menu.sections[sec_idx].items):
+                url = await _upload_single_file(file, "restaurants/menu_items")
+                if url:
+                    data.menu.sections[sec_idx].items[item_idx].image_url = url
 
     try:
         async with prisma.tx() as tx:
@@ -207,7 +231,7 @@ async def create_restaurant(
 
             if data.hours and getattr(data.hours, "weekly_schedule", None):
                 create_data["hours"] = {
-                    "create": {"weeklySchedule": _to_prisma_weekly_schedule(data.hours)}
+                    "create": {"weeklySchedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}
                 }
 
             if data.menu:
@@ -224,7 +248,7 @@ async def create_restaurant(
                             "currency": item.currency,
                             "imageUrl": item.image_url,
                             "imageDescription": item.image_description,
-                            "dietary": item.dietary,
+                            "dietary": PrismaJson(item.dietary) if item.dietary is not None else None,
                             "spiceLevel": item.spice_level.value if item.spice_level else None,
                             "allergens": item.allergens or [],
                             "tags": item.tags or [],
@@ -241,7 +265,7 @@ async def create_restaurant(
                         "sourceUrl": menu.source_url,
                         "language": menu.language.value if menu.language else None,
                         "extractedAt": menu.extracted_at,
-                        "metadata": menu.metadata,
+                        "metadata": PrismaJson(menu.metadata) if menu.metadata is not None else None,
                         "sections": {"create": sections_create},
                     }
                 }
@@ -253,7 +277,7 @@ async def create_restaurant(
                         "cuisineTypes": cd.cuisine_types or [],
                         "mealTypes": cd.meal_types or [],
                         "avgSpendPerPerson": cd.avg_spend_per_person,
-                        "dietaryOptions": cd.dietary_options,
+                        "dietaryOptions": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
                         "reservationSupported": cd.reservation_supported,
                         "reservationRequired": cd.reservation_required,
                         "seatingCapacity": cd.seating_capacity,
@@ -375,7 +399,7 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "translations": {t.language: {"name": t.name, "short_description": t.shortDescription} for t in (r.translations or [])},
         "hours": {"weekly_schedule": r.hours.weeklySchedule} if r.hours else None,
         "menu": _serialize_menu(r.menu) if r.menu else None,
-        "details": _serialize_details(r.details) if r.details else None,
+        "category_details": _serialize_details(r.details) if r.details else None,
     }
 
 
@@ -395,11 +419,21 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
 
 
 def _serialize_details(d: Any) -> Optional[Dict[str, Any]]:
+    """Serialize RestaurantDetails to category_details shape (restaurant.json)."""
     if not d:
         return None
     return {
-        "cuisine_types": d.cuisineTypes,
-        "meal_types": d.mealTypes,
-        "payment_methods": d.paymentMethods,
-        "signature_dishes": d.signatureDishes,
+        "cuisine_types": getattr(d, "cuisineTypes", []) or [],
+        "meal_types": getattr(d, "mealTypes", []) or [],
+        "avg_spend_per_person": getattr(d, "avgSpendPerPerson", None),
+        "dietary_options": getattr(d, "dietaryOptions", None),
+        "reservation_supported": getattr(d, "reservationSupported", False),
+        "reservation_required": getattr(d, "reservationRequired", False),
+        "seating_capacity": getattr(d, "seatingCapacity", None),
+        "indoor_seating": getattr(d, "indoorSeating", False),
+        "outdoor_seating": getattr(d, "outdoorSeating", False),
+        "takeaway_available": getattr(d, "takeawayAvailable", False),
+        "delivery_available": getattr(d, "deliveryAvailable", False),
+        "payment_methods": getattr(d, "paymentMethods", []) or [],
+        "signature_dishes": getattr(d, "signatureDishes", []) or [],
     }

@@ -1,18 +1,9 @@
-"""
-Restaurants API routes.
-
-- POST /restaurants: create (FormData: data=JSON string, cover_image_file, menu_source_file, gallery_0, gallery_1, ...)
-- GET /restaurants: list with filters and pagination
-- GET /restaurants/search: vector (semantic) search via Qdrant
-- GET /restaurants/{id}: get one
-- PUT /restaurants/{id}: update (optional FormData with same file fields)
-- DELETE /restaurants/{id}: delete
-"""
 import json
 import logging
-from typing import List, Optional
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 
 from app.api.dependencies import get_current_active_user, get_admin_user
 from app.shared.schemas.base import PaginationParams
@@ -28,6 +19,110 @@ from app.modules.restaurants.schemas.restaurant import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
+
+# Form keys whose value is a JSON string (list or dict)
+_FORM_JSON_KEYS = frozenset({
+    "languages_supported", "gallery_urls", "tags", "hours", "policies",
+    "translations", "menu", "category_details",
+})
+
+# Regex for gallery file keys: gallery_urls.url_file[0], gallery_urls.url_file[1], ...
+_GALLERY_FILE_PATTERN = re.compile(r"^gallery_urls\.url_file\[(\d+)\]$")
+# Regex for menu item image keys: menu.sections[0].items[1].image_file
+_MENU_IMAGE_PATTERN = re.compile(r"^menu\.sections\[(\d+)\]\.items\[(\d+)\]\.image_file$")
+
+
+def _is_upload_file(value: Any) -> bool:
+    return hasattr(value, "read") and hasattr(value, "filename")
+
+
+def _normalize_json_string(s: str) -> str:
+    """If string looks like a JSON object fragment (e.g. ' "menu": { ... },'), extract the object part."""
+    s = s.strip()
+    if not s:
+        return s
+    # Strip leading "key": so we can parse the value (e.g. ' "menu": { ... },' -> '{ ... }')
+    if s.startswith('"') and ":" in s[:30]:
+        colon = s.find(":", 1)
+        if colon != -1:
+            rest = s[colon + 1 :].lstrip()
+            if rest.startswith("{"):
+                # Find matching closing brace and strip trailing comma
+                depth = 0
+                for i, c in enumerate(rest):
+                    if c == "{":
+                        depth += 1
+                    elif c == "}":
+                        depth -= 1
+                        if depth == 0:
+                            return rest[: i + 1].rstrip().rstrip(",").strip()
+            elif rest.startswith("["):
+                depth = 0
+                for i, c in enumerate(rest):
+                    if c == "[":
+                        depth += 1
+                    elif c == "]":
+                        depth -= 1
+                        if depth == 0:
+                            return rest[: i + 1].rstrip().rstrip(",").strip()
+    return s
+
+
+def _parse_flat_form(form: Dict[str, Any]) -> Dict[str, Any]:
+    """Build restaurant payload from flat form fields. Parses JSON for known complex keys."""
+    payload: Dict[str, Any] = {}
+    for key, value in form.items():
+        if _is_upload_file(value):
+            continue
+        if not isinstance(value, str):
+            payload[key] = value
+            continue
+        if key in _FORM_JSON_KEYS and value.strip():
+            try:
+                payload[key] = json.loads(value)
+            except json.JSONDecodeError:
+                normalized = _normalize_json_string(value)
+                try:
+                    payload[key] = json.loads(normalized) if normalized else value
+                except json.JSONDecodeError:
+                    payload[key] = value
+        else:
+            payload[key] = value
+    return payload
+
+
+def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
+    Optional[UploadFile],
+    List[UploadFile],
+    Optional[UploadFile],
+    Dict[Tuple[int, int], UploadFile],
+]:
+    """Extract cover_image_file, gallery files (ordered), menu_source_file, menu item image files."""
+    cover_file: Optional[UploadFile] = None
+    gallery_by_index: Dict[int, UploadFile] = {}
+    menu_source_file: Optional[UploadFile] = None
+    menu_item_files: Dict[Tuple[int, int], UploadFile] = {}
+
+    for key, value in form.items():
+        if not _is_upload_file(value):
+            continue
+        if key == "cover_image_file":
+            cover_file = value
+        elif key == "menu_source_file":
+            menu_source_file = value
+        elif key.startswith("gallery_") and key[8:].isdigit():
+            gallery_by_index[int(key[8:])] = value
+        else:
+            m = _GALLERY_FILE_PATTERN.match(key)
+            if m:
+                gallery_by_index[int(m.group(1))] = value
+                continue
+            m = _MENU_IMAGE_PATTERN.match(key)
+            if m:
+                menu_item_files[(int(m.group(1)), int(m.group(2)))] = value
+
+    gallery_ordered = [gallery_by_index[i] for i in sorted(gallery_by_index)]
+    return cover_file, gallery_ordered, menu_source_file, menu_item_files
 
 
 @router.get("", summary="List restaurants")
@@ -71,43 +166,44 @@ async def get_restaurant(restaurant_id: str, _user=Depends(get_current_active_us
 @router.post(
     "",
     summary="Create restaurant (multipart/form-data)",
-    description="Create restaurant. Request must be multipart/form-data with body structure as in restaurant.json.",
+    description="Create restaurant. Send multipart/form-data: either (1) data=JSON string + file fields, or (2) flat form fields + JSON strings for gallery_urls, tags, hours, menu, etc. + file fields: cover_image_file, gallery_urls.url_file[0], menu.sections[i].items[j].image_file.",
 )
-async def create_restaurant(
-    data: str = Form(
-        ...,
-        description="JSON string of restaurant payload. Use the same structure as restaurant.json: id, category, name, slug, status, short_description, long_description, address fields, price_band, menu, tags, hours, policies, translations, category_details, etc. For file placeholders (cover_image_file, gallery_urls[].url_file, menu.source_file, menu.sections[].items[].image_file) use null or omit; attach actual files as separate form fields below.",
-    ),
-    cover_image_file: Optional[UploadFile] = File(None, description="Cover image file → cover_image_url"),
-    menu_source_file: Optional[UploadFile] = File(None, description="Menu PDF/image file → menu.source_url"),
-    gallery_0: Optional[UploadFile] = File(None, description="Gallery image 1 (order preserved)"),
-    gallery_1: Optional[UploadFile] = File(None, description="Gallery image 2"),
-    gallery_2: Optional[UploadFile] = File(None, description="Gallery image 3"),
-    gallery_3: Optional[UploadFile] = File(None, description="Gallery image 4"),
-    gallery_4: Optional[UploadFile] = File(None, description="Gallery image 5"),
-    admin_user=Depends(get_admin_user),
-):
+async def create_restaurant(request: Request, admin_user=Depends(get_admin_user)):
     """
-    Create restaurant. Send as **multipart/form-data**:
+    Create restaurant. Send as **multipart/form-data** in one of two ways:
 
-    - **data** (required): JSON string with the same structure as `restaurant.json` (see project root or docs). Include all scalar fields; for any file placeholder (e.g. `cover_image_file`, `url_file`, `source_file`, `image_file`) use `null` or omit the key.
-    - **cover_image_file**: optional file for cover image (sets cover_image_url).
-    - **menu_source_file**: optional file for menu (sets menu.source_url).
-    - **gallery_0**, **gallery_1**, ...: optional gallery image files (order maps to gallery_urls).
+    **Option A – single JSON body**
+    - **data** (required): JSON string with the same structure as `restaurant.json`.
+    - **cover_image_file**, **menu_source_file**, **gallery_0**..**gallery_4** (or **gallery_urls.url_file[0]** etc.): optional files.
 
-    Data is stored in PostgreSQL and indexed in Qdrant (embed_text + optional embed_image).
+    **Option B – flat form fields**
+    - Scalar fields: category, name, slug, status, short_description, long_description, country, province, district, village, address_text, latitude, longitude, price_band, currency, min_price, max_price, booking_supported, walk_in_supported, rating_avg, rating_count, trust_score, quality_score, popularity_score.
+    - JSON-string fields: languages_supported, gallery_urls, tags, hours, policies, translations, menu, category_details.
+    - Files: **cover_image_file**; **gallery_urls.url_file[0]**, **gallery_urls.url_file[1]** (or **gallery_0**, **gallery_1**, ...); **menu.sections[0].items[0].image_file**, **menu.sections[0].items[1].image_file**, etc.; **menu_source_file** (optional).
+
+    Data is stored in PostgreSQL and indexed in Qdrant.
     """
     from app.modules.restaurants.services.create import create_restaurant as _create
 
-    payload = json.loads(data)
-    print("payload", payload)
+    form = await request.form()
+    form_dict = dict(form)
+    print("form_dict", form_dict)
+
+    if "data" in form_dict and not _is_upload_file(form_dict["data"]):
+        data_str = form_dict["data"]
+        payload = json.loads(data_str)
+        cover_file, gallery_ordered, menu_source_file, menu_item_files = _collect_files_from_form(form_dict)
+    else:
+        payload = _parse_flat_form(form_dict)
+        cover_file, gallery_ordered, menu_source_file, menu_item_files = _collect_files_from_form(form_dict)
+
     restaurant_data = RestaurantCreate.model_validate(payload)
-    gallery_files = [f for f in [gallery_0, gallery_1, gallery_2, gallery_3, gallery_4] if f and f.filename]
     return await _create(
         restaurant_data,
-        cover_image_file=cover_image_file,
+        cover_image_file=cover_file,
         menu_source_file=menu_source_file,
-        gallery_files=gallery_files,
+        gallery_files=gallery_ordered,
+        menu_item_files=menu_item_files,
     )
 
 

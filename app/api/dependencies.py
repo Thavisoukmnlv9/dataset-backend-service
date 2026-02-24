@@ -93,7 +93,7 @@ async def get_current_user_with_role(required_role: str, current_user = Depends(
 
 async def get_admin_user(current_user = Depends(get_current_user)):
     """Get current user with admin role"""
-    if current_user.role != "ADMIN":
+    if current_user.role != "ADMIN" and current_user.role != "SUPER_ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"

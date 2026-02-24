@@ -100,6 +100,7 @@ async def create_restaurant(
     from app.modules.restaurants.services.create import create_restaurant as _create
 
     payload = json.loads(data)
+    print("payload", payload)
     restaurant_data = RestaurantCreate.model_validate(payload)
     gallery_files = [f for f in [gallery_0, gallery_1, gallery_2, gallery_3, gallery_4] if f and f.filename]
     return await _create(

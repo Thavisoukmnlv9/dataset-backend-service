@@ -187,7 +187,7 @@ model Restaurant {
   longitude Float?
 
   price_band PriceBand? @map("priceBand")
-  currency   String? // keep flexible (e.g., "LAK")
+  currency   String?
   min_price  Int?       @map("minPrice")
   max_price  Int?       @map("maxPrice")
 

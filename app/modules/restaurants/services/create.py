@@ -1,4 +1,11 @@
-"""Create restaurant: PostgreSQL + Qdrant indexing with embed_text (and optional embed_image)."""
+"""
+Create restaurant: PostgreSQL + Qdrant indexing with embed_text (and optional embed_image).
+
+The API accepts multipart/form-data: a required `data` part (JSON string with the same
+structure as restaurant.json) plus optional file parts (cover_image_file, menu_source_file,
+gallery_0, gallery_1, ...). File placeholder keys in the JSON (cover_image_file, url_file,
+source_file, image_file) should be null or omitted; actual files are sent as form fields.
+"""
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -98,10 +105,13 @@ async def create_restaurant(
     """
     Create restaurant in PostgreSQL and index in Qdrant.
 
-    - Uploads cover_image_file -> coverImageUrl, menu_source_file -> menu.sourceUrl,
-      gallery_files -> gallery_urls (by order).
-    - Builds searchable text, embeds with embed_text, stores one point per restaurant.
-    - Optionally embeds cover image with embed_image and stores a second point (id = rest_id + '_cover').
+    Expects data matching restaurant.json structure (RestaurantCreate). File uploads:
+    - cover_image_file -> coverImageUrl
+    - menu_source_file -> menu.sourceUrl
+    - gallery_files -> gallery_urls (by order).
+
+    Builds searchable text, embeds with embed_text, stores one point per restaurant.
+    Optionally embeds cover image with embed_image and stores a second point (id = rest_id + '_cover').
     """
     now = datetime.now(timezone.utc)
     rest_id = data.id or f"rest_{now.strftime('%Y%m%d%H%M%S')}"

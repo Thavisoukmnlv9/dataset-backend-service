@@ -68,24 +68,33 @@ async def get_restaurant(restaurant_id: str, _user=Depends(get_current_active_us
     return await _get_one(restaurant_id)
 
 
-@router.post("", summary="Create restaurant (JSON + optional image uploads)")
+@router.post(
+    "",
+    summary="Create restaurant (multipart/form-data)",
+    description="Create restaurant. Request must be multipart/form-data with body structure as in restaurant.json.",
+)
 async def create_restaurant(
-    data: str = Form(..., description="JSON string of restaurant payload (see RestaurantCreate schema)"),
-    cover_image_file: Optional[UploadFile] = File(None, description="Cover image → cover_image_url"),
-    menu_source_file: Optional[UploadFile] = File(None, description="Menu PDF/image → menu.source_url"),
-    gallery_0: Optional[UploadFile] = File(None),
-    gallery_1: Optional[UploadFile] = File(None),
-    gallery_2: Optional[UploadFile] = File(None),
-    gallery_3: Optional[UploadFile] = File(None),
-    gallery_4: Optional[UploadFile] = File(None),
+    data: str = Form(
+        ...,
+        description="JSON string of restaurant payload. Use the same structure as restaurant.json: id, category, name, slug, status, short_description, long_description, address fields, price_band, menu, tags, hours, policies, translations, category_details, etc. For file placeholders (cover_image_file, gallery_urls[].url_file, menu.source_file, menu.sections[].items[].image_file) use null or omit; attach actual files as separate form fields below.",
+    ),
+    cover_image_file: Optional[UploadFile] = File(None, description="Cover image file → cover_image_url"),
+    menu_source_file: Optional[UploadFile] = File(None, description="Menu PDF/image file → menu.source_url"),
+    gallery_0: Optional[UploadFile] = File(None, description="Gallery image 1 (order preserved)"),
+    gallery_1: Optional[UploadFile] = File(None, description="Gallery image 2"),
+    gallery_2: Optional[UploadFile] = File(None, description="Gallery image 3"),
+    gallery_3: Optional[UploadFile] = File(None, description="Gallery image 4"),
+    gallery_4: Optional[UploadFile] = File(None, description="Gallery image 5"),
     admin_user=Depends(get_admin_user),
 ):
     """
-    Create restaurant. Send FormData with:
-    - data: JSON string matching restaurant.json (RestaurantCreate).
-    - cover_image_file: file for cover image (updates cover_image_url).
-    - menu_source_file: file for menu (updates menu.source_url).
-    - gallery_0, gallery_1, ...: optional gallery images (order preserved).
+    Create restaurant. Send as **multipart/form-data**:
+
+    - **data** (required): JSON string with the same structure as `restaurant.json` (see project root or docs). Include all scalar fields; for any file placeholder (e.g. `cover_image_file`, `url_file`, `source_file`, `image_file`) use `null` or omit the key.
+    - **cover_image_file**: optional file for cover image (sets cover_image_url).
+    - **menu_source_file**: optional file for menu (sets menu.source_url).
+    - **gallery_0**, **gallery_1**, ...: optional gallery image files (order maps to gallery_urls).
+
     Data is stored in PostgreSQL and indexed in Qdrant (embed_text + optional embed_image).
     """
     from app.modules.restaurants.services.create import create_restaurant as _create

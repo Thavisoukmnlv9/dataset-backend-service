@@ -62,6 +62,7 @@ class SpiceLevelEnum(str, Enum):
 class GalleryImageIn(BaseModel):
     url: Optional[str] = None
     description: Optional[str] = None
+    url_file: Optional[Any] = None  # multipart placeholder; send file as gallery_0, gallery_1, ...
 
 
 class TagIn(BaseModel):
@@ -97,6 +98,7 @@ class MenuItemIn(BaseModel):
     currency: Optional[str] = None
     image_url: Optional[str] = None
     image_description: Optional[str] = None
+    image_file: Optional[Any] = None  # multipart placeholder (per-item image; use image_url or future form field)
     dietary: Optional[Dict[str, Any]] = None
     spice_level: Optional[SpiceLevelEnum] = None
     allergens: List[str] = Field(default_factory=list)
@@ -112,6 +114,7 @@ class MenuIn(BaseModel):
     source_type: str = "menu"
     source_version: Optional[str] = None
     source_url: Optional[str] = None
+    source_file: Optional[Any] = None  # multipart placeholder; send file as menu_source_file form field
     language: Optional[LanguageCodeEnum] = None
     extracted_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -160,6 +163,7 @@ class RestaurantCreate(BaseModel):
     walk_in_supported: bool = True
     languages_supported: List[LanguageCodeEnum] = Field(default_factory=list)
     cover_image_url: Optional[str] = None
+    cover_image_file: Optional[Any] = None  # multipart placeholder; send file as cover_image_file form field
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
     rating_avg: Optional[float] = None
     rating_count: int = 0

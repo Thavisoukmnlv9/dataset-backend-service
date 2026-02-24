@@ -99,6 +99,7 @@ def create_validation_error_response(
             "missing": "missing",
             "type_error": "invalid_type",
             "value_error": "invalid_value",
+            "enum": "invalid_value",
             "string_too_short": "too_short",
             "string_too_long": "too_long",
             "string_pattern_mismatch": "pattern_mismatch"

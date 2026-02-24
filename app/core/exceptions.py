@@ -6,6 +6,7 @@ import logging
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError as PydanticValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.shared.utils.responses.error_response import (
     create_standard_error_response,
@@ -35,6 +36,21 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content=error_response.model_dump()
     )
+
+async def pydantic_validation_exception_handler(request: Request, exc: PydanticValidationError):
+    """Handle Pydantic ValidationError from model_validate() etc. (same format as raise_business_logic_error)."""
+    if request.method == "OPTIONS":
+        return Response(status_code=200)
+    logger.error(f"Pydantic validation error: {exc}")
+    error_response = create_validation_error_response(
+        validation_errors=exc.errors(),
+        request=request
+    )
+    return JSONResponse(
+        status_code=422,
+        content=error_response.model_dump()
+    )
+
 
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     """Handle HTTP exceptions"""
@@ -88,5 +104,6 @@ async def general_exception_handler(request: Request, exc: Exception):
 def setup_exception_handlers(app):
     """Register all exception handlers with the FastAPI app"""
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(PydanticValidationError, pydantic_validation_exception_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)

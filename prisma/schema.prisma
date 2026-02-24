@@ -218,6 +218,7 @@ model Restaurant {
   @@index([province, district])
   @@index([status])
   @@index([category])
+  @@map("restaurants")
 }
 
 model RestaurantGalleryImage {
@@ -229,6 +230,7 @@ model RestaurantGalleryImage {
   restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])
+  @@map("restaurant_gallery_images")
 }
 
 model RestaurantTag {
@@ -241,6 +243,7 @@ model RestaurantTag {
 
   @@index([restaurant_id])
   @@index([tag_type, tag_value])
+  @@map("restaurant_tags")
 }
 
 model RestaurantPolicy {
@@ -253,6 +256,7 @@ model RestaurantPolicy {
 
   @@index([restaurant_id])
   @@index([policy_type])
+  @@map("restaurant_policies")
 }
 
 model RestaurantTranslation {
@@ -267,6 +271,7 @@ model RestaurantTranslation {
 
   @@unique([restaurant_id, language])
   @@index([language])
+  @@map("restaurant_translations")
 }
 
 model RestaurantHours {
@@ -274,6 +279,8 @@ model RestaurantHours {
   restaurant_id   String     @unique @map("restaurantId")
   weekly_schedule Json       @map("weeklySchedule")
   restaurant      Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_hours")
 }
 
 model RestaurantMenu {
@@ -291,6 +298,7 @@ model RestaurantMenu {
   sections   MenuSection[]
 
   @@index([restaurant_id])
+  @@map("restaurant_menus")
 }
 
 model MenuSection {
@@ -303,6 +311,7 @@ model MenuSection {
   items MenuItem[]
 
   @@index([menu_id])
+  @@map("menu_sections")
 }
 
 model MenuItem {
@@ -324,6 +333,7 @@ model MenuItem {
 
   @@index([section_id])
   @@index([item_id])
+  @@map("menu_items")
 }
 
 model RestaurantDetails {
@@ -345,6 +355,7 @@ model RestaurantDetails {
   restaurant            Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])
+  @@map("restaurant_details")
 }
 
 enum ListingCategory {

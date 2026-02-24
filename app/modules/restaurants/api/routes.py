@@ -117,10 +117,13 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
     menu_source_file: Optional[UploadFile] = None
     menu_item_files: Dict[Tuple[int, int], UploadFile] = {}
 
+    # Accept multiple common names for cover image (e.g. cover_image_file, cover_image, coverImageFile)
+    _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile", "cover_image_url"})
+
     for key, value in form.items():
         if not _is_upload_file(value):
             continue
-        if key == "cover_image_file":
+        if key in _COVER_KEYS:
             cover_file = value
         elif key == "menu_source_file":
             menu_source_file = value

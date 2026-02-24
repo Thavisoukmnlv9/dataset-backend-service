@@ -61,10 +61,29 @@ def _build_searchable_text(data: RestaurantCreate) -> str:
 
 async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
     if not file or not file.filename:
+        logger.debug("No cover image file provided (file=%s, filename=%s)", bool(file), getattr(file, "filename", None))
         return None
-    result = await storage_service.upload_file(file, "restaurants")
-    if result.success and result.data:
-        return _to_stored_path(result.data.get("object_name"))
+    try:
+        if hasattr(file, "file") and file.file is not None and hasattr(file.file, "seek"):
+            file.file.seek(0)
+        result = await storage_service.upload_file(file, "restaurants")
+    except Exception as e:
+        logger.warning("Cover image upload failed: %s", e)
+        return None
+    if not result.success:
+        logger.warning("Cover image upload returned success=False")
+        return None
+    data = result.data or {}
+    # Prefer object_name; fallback to url (e.g. /uploads/restaurants/xxx.jpg) and normalize
+    object_name = data.get("object_name")
+    if object_name:
+        path = _to_stored_path(object_name)
+        if path:
+            return path
+    url = data.get("url")
+    if url and isinstance(url, str) and url.strip().startswith("/"):
+        return url.strip() if not url.strip().startswith("//") else url.strip()
+    logger.warning("Cover image upload gave no object_name or usable url: data=%s", list(data.keys()))
     return None
 
 

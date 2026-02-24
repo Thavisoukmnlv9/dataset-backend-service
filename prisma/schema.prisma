@@ -168,7 +168,7 @@ model RateLimit {
 }
 
 model Restaurant {
-  id       String          @id
+  id       String          @id @default(uuid())
   category ListingCategory @default(RESTAURANT)
   name     String
   slug     String          @unique
@@ -315,7 +315,7 @@ model MenuSection {
 }
 
 model MenuItem {
-  id         String  @id @default(cuid())
+  id         String  @id @default(uuid())
   section_id String  @map("sectionId")
   item_id    String? @map("itemId")
 

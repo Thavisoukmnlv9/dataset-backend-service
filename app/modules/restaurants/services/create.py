@@ -102,7 +102,6 @@ async def create_restaurant(
     menu_item_files: Optional[Dict[Tuple[int, int], UploadFile]] = None,
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
-    rest_id = data.id or f"rest_{now.strftime('%Y%m%d%H%M%S')}"
 
     # Apply file uploads
     cover_url = await _upload_cover_image(cover_image_file)
@@ -129,12 +128,6 @@ async def create_restaurant(
 
     try:
         async with prisma.tx() as tx:
-            existing = await tx.restaurant.find_unique(where={"id": rest_id})
-            if existing:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Restaurant with this id already exists",
-                )
             slug_exists = await tx.restaurant.find_unique(where={"slug": data.slug})
             if slug_exists:
                 raise HTTPException(
@@ -143,7 +136,6 @@ async def create_restaurant(
                 )
 
             create_data: Dict[str, Any] = {
-                "id": rest_id,
                 "category": data.category.value,
                 "name": data.name,
                 "slug": data.slug,
@@ -270,7 +262,8 @@ async def create_restaurant(
                     }
                 }
 
-            await tx.restaurant.create(data=create_data)
+            created_in_tx = await tx.restaurant.create(data=create_data)
+            rest_id = created_in_tx.id
 
         # Index in Qdrant
         searchable_text = _build_searchable_text(data)

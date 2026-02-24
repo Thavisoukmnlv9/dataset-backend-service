@@ -36,6 +36,14 @@ def _is_upload_file(value: Any) -> bool:
     return hasattr(value, "read") and hasattr(value, "filename")
 
 
+def _strip_trailing_json_comma(s: str) -> str:
+    """Remove trailing comma after } or ] so '{"a":1},' or '[1,2],' becomes valid JSON."""
+    s = s.strip()
+    if s.endswith(","):
+        return s[:-1].strip()
+    return s
+
+
 def _normalize_json_string(s: str) -> str:
     """If string looks like a JSON object fragment (e.g. ' "menu": { ... },'), extract the object part."""
     s = s.strip()
@@ -81,11 +89,17 @@ def _parse_flat_form(form: Dict[str, Any]) -> Dict[str, Any]:
             try:
                 payload[key] = json.loads(value)
             except json.JSONDecodeError:
-                normalized = _normalize_json_string(value)
+                # Try stripping trailing comma (e.g. '{"menu":...},' from form)
+                stripped = _strip_trailing_json_comma(value)
                 try:
-                    payload[key] = json.loads(normalized) if normalized else value
+                    payload[key] = json.loads(stripped)
                 except json.JSONDecodeError:
-                    payload[key] = value
+                    normalized = _normalize_json_string(value)
+                    normalized = _strip_trailing_json_comma(normalized) if normalized else normalized
+                    try:
+                        payload[key] = json.loads(normalized) if normalized else value
+                    except json.JSONDecodeError:
+                        payload[key] = value
         else:
             payload[key] = value
     return payload
@@ -187,7 +201,6 @@ async def create_restaurant(request: Request, admin_user=Depends(get_admin_user)
 
     form = await request.form()
     form_dict = dict(form)
-    print("form_dict", form_dict)
 
     if "data" in form_dict and not _is_upload_file(form_dict["data"]):
         data_str = form_dict["data"]

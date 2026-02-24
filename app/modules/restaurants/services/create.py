@@ -1,16 +1,7 @@
-"""
-Create restaurant: PostgreSQL + Qdrant indexing with embed_text (and optional embed_image).
-
-The API accepts multipart/form-data: either a single `data` JSON string plus file parts, or
-flat form fields plus JSON strings for complex fields. File parts: cover_image_file,
-menu_source_file, gallery_0 / gallery_urls.url_file[0], ..., menu.sections[i].items[j].image_file.
-"""
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
-
 from fastapi import HTTPException, status, UploadFile
-
 from app.prisma import prisma
 from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.embeddings import embed_text, embed_image, EMBED_OUTPUT_DIM
@@ -21,11 +12,8 @@ from qdrant_client.models import PointStruct
 
 from app.modules.restaurants.schemas.restaurant import (
     RestaurantCreate,
-    CategoryDetailsIn,
     GalleryImageIn,
-    MenuIn,
-    MenuSectionIn,
-    MenuItemIn,
+    LanguageCodeEnum,
 )
 
 logger = logging.getLogger(__name__)
@@ -113,17 +101,6 @@ async def create_restaurant(
     gallery_files: Optional[List[UploadFile]] = None,
     menu_item_files: Optional[Dict[Tuple[int, int], UploadFile]] = None,
 ) -> Dict[str, Any]:
-    """
-    Create restaurant in PostgreSQL and index in Qdrant.
-
-    Expects data matching restaurant.json structure (RestaurantCreate). File uploads:
-    - cover_image_file -> coverImageUrl
-    - menu_source_file -> menu.sourceUrl
-    - gallery_files -> gallery_urls (by order).
-
-    Builds searchable text, embeds with embed_text, stores one point per restaurant.
-    Optionally embeds cover image with embed_image and stores a second point (id = rest_id + '_cover').
-    """
     now = datetime.now(timezone.utc)
     rest_id = data.id or f"rest_{now.strftime('%Y%m%d%H%M%S')}"
 
@@ -135,7 +112,6 @@ async def create_restaurant(
     menu_source_url = await _upload_menu_source(menu_source_file)
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
     if gallery_uploaded:
-        # Merge uploaded URLs with existing gallery_urls (from flat form) so descriptions are kept
         if data.gallery_urls and len(data.gallery_urls) >= len(gallery_uploaded):
             for i, gu in enumerate(gallery_uploaded):
                 data.gallery_urls[i].url = gu.url
@@ -144,7 +120,6 @@ async def create_restaurant(
     if menu_source_url and data.menu:
         data.menu.source_url = menu_source_url
 
-    # Upload menu item images (menu.sections[sec].items[item].image_file)
     if menu_item_files and data.menu and data.menu.sections:
         for (sec_idx, item_idx), file in sorted(menu_item_files.items()):
             if sec_idx < len(data.menu.sections) and item_idx < len(data.menu.sections[sec_idx].items):
@@ -167,7 +142,6 @@ async def create_restaurant(
                     detail="Restaurant with this slug already exists",
                 )
 
-            # Build nested create (snake_case field names)
             create_data: Dict[str, Any] = {
                 "id": rest_id,
                 "category": data.category.value,
@@ -224,10 +198,16 @@ async def create_restaurant(
             if data.translations:
                 trans_list = []
                 for lang, tr in data.translations.items():
+                    lang_str = lang.upper() if isinstance(lang, str) else lang
+                    try:
+                        lang_enum = LanguageCodeEnum(lang_str)
+                    except ValueError:
+                        continue
                     name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
                     short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
-                    trans_list.append({"language": lang, "name": name, "short_description": short})
-                create_data["translations"] = {"create": trans_list}
+                    trans_list.append({"language": lang_enum.value, "name": name, "short_description": short})
+                if trans_list:
+                    create_data["translations"] = {"create": trans_list}
 
             if data.hours and getattr(data.hours, "weekly_schedule", None):
                 create_data["hours"] = {

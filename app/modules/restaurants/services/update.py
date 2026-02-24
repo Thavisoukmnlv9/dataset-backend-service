@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.restaurants.schemas.restaurant import RestaurantUpdate
+from app.modules.restaurants.schemas.restaurant import LanguageCodeEnum, RestaurantUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -145,10 +145,15 @@ async def update_restaurant(
         if data.translations is not None:
             await prisma.restauranttranslation.delete_many(where={"restaurant_id": restaurant_id})
             for lang, tr in data.translations.items():
+                lang_str = lang.upper() if isinstance(lang, str) else lang
+                try:
+                    lang_enum = LanguageCodeEnum(lang_str)
+                except ValueError:
+                    continue
                 name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
                 short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
                 await prisma.restauranttranslation.create(
-                    data={"restaurant_id": restaurant_id, "language": lang, "name": name, "short_description": short},
+                    data={"restaurant_id": restaurant_id, "language": lang_enum.value, "name": name, "short_description": short},
                 )
         if data.category_details is not None:
             cd = data.category_details

@@ -167,7 +167,7 @@ class LocalStorageAdapter(StoragePort):
             )
 
     def extract_object_name_from_url(self, url_or_object_name: str) -> Optional[str]:
-        """Extract object name from URL or return as-is if already a path."""
+        """Extract object name from URL or stored path (/uploads/...) for use with _object_to_path."""
         if not url_or_object_name:
             return None
         s = url_or_object_name.strip()
@@ -180,6 +180,12 @@ class LocalStorageAdapter(StoragePort):
                 idx = s.find(base) + len(base)
                 return s[idx:].lstrip("/")
             return None
+        # Stored path in DB is e.g. /uploads/restaurants/menu_items/xxx.jpg -> return restaurants/menu_items/xxx.jpg
+        prefix = self._public_base.rstrip("/") + "/"
+        if s.startswith(prefix):
+            return s[len(prefix) :].lstrip("/")
+        if s.startswith("/"):
+            return s.lstrip("/")
         return s
 
     async def get_presigned_url(

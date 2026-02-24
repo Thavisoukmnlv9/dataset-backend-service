@@ -20,6 +20,21 @@ logger = logging.getLogger(__name__)
 
 QDRANT_COLLECTION = "restaurants"
 
+# Path prefix stored in Prisma for uploaded files (e.g. /uploads/restaurants/menu_items/...)
+UPLOADS_PREFIX = "/uploads"
+
+
+def _to_stored_path(object_name: Optional[str]) -> Optional[str]:
+    """Convert storage object_name to path stored in Prisma: /uploads/restaurants/..."""
+    if not object_name or not object_name.strip():
+        return None
+    s = object_name.strip().lstrip("/")
+    if not s:
+        return None
+    if s.startswith("uploads/"):
+        return "/" + s
+    return f"{UPLOADS_PREFIX}/{s}"
+
 
 def _build_searchable_text(data: RestaurantCreate) -> str:
     """Build a single text blob for embedding (name, description, tags, location)."""
@@ -49,7 +64,7 @@ async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
         return None
     result = await storage_service.upload_file(file, "restaurants")
     if result.success and result.data:
-        return result.data.get("object_name")
+        return _to_stored_path(result.data.get("object_name"))
     return None
 
 
@@ -58,7 +73,7 @@ async def _upload_menu_source(file: Optional[UploadFile]) -> Optional[str]:
         return None
     result = await storage_service.upload_file(file, "restaurants/menus", auto_resize=False)
     if result.success and result.data:
-        return result.data.get("object_name")
+        return _to_stored_path(result.data.get("object_name"))
     return None
 
 
@@ -70,17 +85,19 @@ async def _upload_gallery_files(files: List[UploadFile]) -> List[GalleryImageIn]
             continue
         result = await storage_service.upload_file(f, "restaurants/gallery")
         if result.success and result.data:
-            out.append(GalleryImageIn(url=result.data.get("object_name"), description=None))
+            url = _to_stored_path(result.data.get("object_name"))
+            if url:
+                out.append(GalleryImageIn(url=url, description=None))
     return out
 
 
 async def _upload_single_file(file: UploadFile, path_prefix: str) -> Optional[str]:
-    """Upload one file to path_prefix and return object_name, or None."""
+    """Upload one file to path_prefix and return path for Prisma (/uploads/...), or None."""
     if not file or not file.filename:
         return None
     result = await storage_service.upload_file(file, path_prefix)
     if result.success and result.data:
-        return result.data.get("object_name")
+        return _to_stored_path(result.data.get("object_name"))
     return None
 
 

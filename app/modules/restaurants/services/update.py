@@ -22,7 +22,7 @@ async def update_restaurant(
     gallery_files: Optional[List[UploadFile]] = None,
 ) -> Dict[str, Any]:
     """Update restaurant; upload files if provided and re-index in Qdrant if searchable content changed."""
-    from app.modules.restaurants.services.create import _serialize_restaurant
+    from app.modules.restaurants.services.create import _serialize_restaurant, _to_stored_path
 
     try:
         existing = await prisma.restaurant.find_unique(
@@ -32,18 +32,22 @@ async def update_restaurant(
         if not existing:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Restaurant not found")
 
-        # Upload files and set URLs
+        # Upload files and set URLs (stored in Prisma as /uploads/...)
         if cover_image_file and cover_image_file.filename:
             result = await storage_service.upload_file(cover_image_file, "restaurants")
             if result.success and result.data:
-                data.cover_image_url = result.data.get("object_name")
+                path = _to_stored_path(result.data.get("object_name"))
+                if path:
+                    data.cover_image_url = path
         if menu_source_file and menu_source_file.filename and existing.menu:
             result = await storage_service.upload_file(menu_source_file, "restaurants/menus", auto_resize=False)
             if result.success and result.data:
-                await prisma.restaurantmenu.update(
-                    where={"id": existing.menu.id},
-                    data={"source_url": result.data.get("object_name")},
-                )
+                path = _to_stored_path(result.data.get("object_name"))
+                if path:
+                    await prisma.restaurantmenu.update(
+                        where={"id": existing.menu.id},
+                        data={"source_url": path},
+                    )
         if gallery_files:
             new_gallery = []
             for f in gallery_files:
@@ -51,7 +55,9 @@ async def update_restaurant(
                     continue
                 result = await storage_service.upload_file(f, "restaurants/gallery")
                 if result.success and result.data:
-                    new_gallery.append({"url": result.data.get("object_name"), "description": None})
+                    path = _to_stored_path(result.data.get("object_name"))
+                    if path:
+                        new_gallery.append({"url": path, "description": None})
             if new_gallery:
                 await prisma.restaurantgalleryimage.delete_many(where={"restaurant_id": restaurant_id})
                 await prisma.restaurantgalleryimage.create_many(

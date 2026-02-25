@@ -1,10 +1,11 @@
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from fastapi import HTTPException, status, UploadFile
 from app.prisma import prisma
 from app.prisma.generated.fields import Json as PrismaJson
-from app.shared.embeddings import embed_text, embed_image, EMBED_OUTPUT_DIM
+from app.shared.embeddings import embed_text_or_fallback, embed_image, EMBED_OUTPUT_DIM
 from app.shared.qdrant_client import ensure_collection, upsert_points
 from app.shared.utils.responses.response import create_success_response
 from app.shared.services.infrastructure.storage import storage_service
@@ -19,6 +20,10 @@ from app.modules.restaurants.schemas.restaurant import (
 logger = logging.getLogger(__name__)
 
 QDRANT_COLLECTION = "restaurants"
+
+# Deterministic UUID for cover-image point (Qdrant only allows UUID or integer IDs)
+def _qdrant_cover_point_id(restaurant_id: str) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_OID, f"{restaurant_id}_cover")
 
 # Path prefix stored in Prisma for uploaded files (e.g. /uploads/restaurants/menu_items/...)
 UPLOADS_PREFIX = "/uploads"
@@ -301,43 +306,49 @@ async def create_restaurant(
             created_in_tx = await tx.restaurant.create(data=create_data)
             rest_id = created_in_tx.id
 
-        # Index in Qdrant
+        # Index in Qdrant (always save for RAG; use fallback embedding if Gemini fails)
         searchable_text = _build_searchable_text(data)
-        if searchable_text:
-            try:
-                vectors = embed_text(searchable_text, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBED_OUTPUT_DIM)
-                if vectors:
-                    ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
-                    points = [
-                        PointStruct(
-                            id=rest_id,
-                            vector=vectors[0],
-                            payload={
-                                "restaurant_id": rest_id,
-                                "name": data.name,
-                                "slug": data.slug,
-                                "type": "text",
-                            },
-                        )
-                    ]
-                    # Optional: embed cover image and add point
-                    if cover_image_file and cover_image_file.file:
-                        try:
-                            content = await cover_image_file.read()
-                            await cover_image_file.seek(0)
-                            img_vec = embed_image(content, output_dimensionality=EMBED_OUTPUT_DIM)
-                            points.append(
-                                PointStruct(
-                                    id=f"{rest_id}_cover",
-                                    vector=img_vec,
-                                    payload={"restaurant_id": rest_id, "name": data.name, "slug": data.slug, "type": "image"},
-                                )
+        if not searchable_text:
+            searchable_text = data.name or str(rest_id)
+        try:
+            vectors = embed_text_or_fallback(
+                searchable_text,
+                task_type="RETRIEVAL_DOCUMENT",
+                output_dimensionality=EMBED_OUTPUT_DIM,
+            )
+            if vectors:
+                ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
+                points = [
+                    PointStruct(
+                        id=rest_id,
+                        vector=vectors[0],
+                        payload={
+                            "restaurant_id": rest_id,
+                            "name": data.name,
+                            "slug": data.slug,
+                            "type": "text",
+                        },
+                    )
+                ]
+                # Optional: embed cover image and add point
+                if cover_image_file and cover_image_file.file:
+                    try:
+                        content = await cover_image_file.read()
+                        await cover_image_file.seek(0)
+                        img_vec = embed_image(content, output_dimensionality=EMBED_OUTPUT_DIM)
+                        points.append(
+                            PointStruct(
+                                id=_qdrant_cover_point_id(str(rest_id)),
+                                vector=img_vec,
+                                payload={"restaurant_id": rest_id, "name": data.name, "slug": data.slug, "type": "image"},
                             )
-                        except Exception as e:
-                            logger.warning("Could not embed cover image for Qdrant: %s", e)
-                    upsert_points(QDRANT_COLLECTION, points)
-            except Exception as e:
-                logger.warning("Qdrant indexing failed (restaurant still created): %s", e)
+                        )
+                    except Exception as e:
+                        logger.warning("Could not embed cover image for Qdrant: %s", e)
+                upsert_points(QDRANT_COLLECTION, points)
+                logger.info("Restaurant %s indexed in Qdrant (RAG)", rest_id)
+        except Exception as e:
+            logger.exception("Qdrant indexing failed (restaurant created in PostgreSQL): %s", e)
 
         # Fetch created with relations for response
         created = await prisma.restaurant.find_unique(

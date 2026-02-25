@@ -84,6 +84,37 @@ def _pseudo_embed_from_bytes(data: bytes, dim: int) -> List[float]:
     return [x / norm for x in floats]
 
 
+def embed_text_or_fallback(
+    text: Union[str, List[str]],
+    task_type: str = "RETRIEVAL_DOCUMENT",
+    output_dimensionality: int = EMBED_OUTPUT_DIM,
+) -> List[List[float]]:
+    """
+    Embed text with Gemini; if API fails or returns empty, use deterministic
+    pseudo-embedding from text bytes so Qdrant always gets a vector (for RAG).
+    """
+    if isinstance(text, str):
+        text = [text]
+    if not text:
+        return []
+
+    try:
+        vectors = embed_text(text, task_type=task_type, output_dimensionality=output_dimensionality)
+        if vectors:
+            return vectors
+    except Exception as e:
+        logger.warning("embed_text failed, using pseudo-embedding for Qdrant: %s", e)
+
+    # Fallback: one pseudo-vector per input string
+    out: List[List[float]] = []
+    for t in text:
+        raw = (t or "").encode("utf-8")
+        if not raw:
+            raw = b" "
+        out.append(_pseudo_embed_from_bytes(raw, output_dimensionality))
+    return out
+
+
 def embed_image(
     image_bytes: bytes,
     mime_type: str = "image/jpeg",

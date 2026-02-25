@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     # GEMINI
     # ========================================
     gemini_api_key: str = Field(
-        default="AIzaSyCPxPfmJlSkYt0Tz3FmLqPEpvqN2in2Uds",
+        default="AIzaSyDUORhtRBnzEhbIgJAPcfNvx5XiZlht12c",
         description="Gemini API key",
         alias="GEMINI_API_KEY"
     )

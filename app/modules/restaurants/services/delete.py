@@ -13,6 +13,7 @@ QDRANT_COLLECTION = "restaurants"
 
 async def delete_restaurant(restaurant_id: str) -> Dict:
     """Soft delete not used (no deleted_at on Restaurant); hard delete and remove from Qdrant."""
+    from app.modules.restaurants.services.create import _qdrant_cover_point_id
     from app.shared.qdrant_client import get_qdrant_client
     from app.shared.utils.responses.response import create_success_response
 
@@ -23,7 +24,10 @@ async def delete_restaurant(restaurant_id: str) -> Dict:
         await prisma.restaurant.delete(where={"id": restaurant_id})
         try:
             client = get_qdrant_client()
-            client.delete(collection_name=QDRANT_COLLECTION, points_selector=[restaurant_id, f"{restaurant_id}_cover"])
+            client.delete(
+                collection_name=QDRANT_COLLECTION,
+                points_selector=[restaurant_id, _qdrant_cover_point_id(restaurant_id)],
+            )
         except Exception as e:
             logger.warning("Qdrant delete failed: %s", e)
         return create_success_response(message="Restaurant deleted successfully", data={"id": restaurant_id})

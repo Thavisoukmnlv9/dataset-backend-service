@@ -183,7 +183,7 @@ async def update_restaurant(
             else:
                 await prisma.restaurantdetails.create(data={"restaurant_id": restaurant_id, **details_payload})
 
-        # Re-index in Qdrant (build searchable text from updated record)
+        # Re-index in Qdrant (always save for RAG; use fallback embedding if Gemini fails)
         updated = await prisma.restaurant.find_unique(
             where={"id": restaurant_id},
             include={"gallery": True, "tags": True, "menu": {"include": {"sections": {"include": {"items": True}}}}},
@@ -191,7 +191,7 @@ async def update_restaurant(
         if updated:
             try:
                 from app.modules.restaurants.services.create import QDRANT_COLLECTION
-                from app.shared.embeddings import embed_text, EMBED_OUTPUT_DIM
+                from app.shared.embeddings import embed_text_or_fallback, EMBED_OUTPUT_DIM
                 from app.shared.qdrant_client import ensure_collection, upsert_points
                 from qdrant_client.models import PointStruct
 
@@ -213,21 +213,21 @@ async def update_restaurant(
                             parts.append(i.name)
                             if i.description:
                                 parts.append(i.description)
-                searchable = " ".join(p for p in parts if p).strip() or updated.name
-                if searchable:
-                    vectors = embed_text(searchable, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBED_OUTPUT_DIM)
-                    if vectors:
-                        ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
-                        upsert_points(
-                            QDRANT_COLLECTION,
-                            [
-                                PointStruct(
-                                    id=restaurant_id,
-                                    vector=vectors[0],
-                                    payload={"restaurant_id": restaurant_id, "name": updated.name, "slug": updated.slug, "type": "text"},
-                                )
-                            ],
-                        )
+                searchable = " ".join(p for p in parts if p).strip() or updated.name or restaurant_id
+                vectors = embed_text_or_fallback(searchable, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBED_OUTPUT_DIM)
+                if vectors:
+                    ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
+                    upsert_points(
+                        QDRANT_COLLECTION,
+                        [
+                            PointStruct(
+                                id=restaurant_id,
+                                vector=vectors[0],
+                                payload={"restaurant_id": restaurant_id, "name": updated.name, "slug": updated.slug, "type": "text"},
+                            )
+                        ],
+                    )
+                    logger.info("Restaurant %s re-indexed in Qdrant (RAG)", restaurant_id)
             except Exception as e:
                 logger.warning("Qdrant re-index on update failed: %s", e)
 

@@ -183,10 +183,18 @@ async def update_restaurant(
             else:
                 await prisma.restaurantdetails.create(data={"restaurant_id": restaurant_id, **details_payload})
 
-        # Re-index in Qdrant (always save for RAG; use fallback embedding if Gemini fails)
+        # Re-index in Qdrant with full restaurant data (no fields cut; for RAG)
         updated = await prisma.restaurant.find_unique(
             where={"id": restaurant_id},
-            include={"gallery": True, "tags": True, "menu": {"include": {"sections": {"include": {"items": True}}}}},
+            include={
+                "gallery": True,
+                "tags": True,
+                "policies": True,
+                "translations": True,
+                "hours": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
+                "details": True,
+            },
         )
         if updated:
             try:
@@ -217,13 +225,14 @@ async def update_restaurant(
                 vectors = embed_text_or_fallback(searchable, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBED_OUTPUT_DIM)
                 if vectors:
                     ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
+                    full_payload = {**_serialize_restaurant(updated), "type": "text"}
                     upsert_points(
                         QDRANT_COLLECTION,
                         [
                             PointStruct(
                                 id=restaurant_id,
                                 vector=vectors[0],
-                                payload={"restaurant_id": restaurant_id, "name": updated.name, "slug": updated.slug, "type": "text"},
+                                payload=full_payload,
                             )
                         ],
                     )

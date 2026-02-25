@@ -306,51 +306,7 @@ async def create_restaurant(
             created_in_tx = await tx.restaurant.create(data=create_data)
             rest_id = created_in_tx.id
 
-        # Index in Qdrant (always save for RAG; use fallback embedding if Gemini fails)
-        searchable_text = _build_searchable_text(data)
-        if not searchable_text:
-            searchable_text = data.name or str(rest_id)
-        try:
-            vectors = embed_text_or_fallback(
-                searchable_text,
-                task_type="RETRIEVAL_DOCUMENT",
-                output_dimensionality=EMBED_OUTPUT_DIM,
-            )
-            if vectors:
-                ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
-                points = [
-                    PointStruct(
-                        id=rest_id,
-                        vector=vectors[0],
-                        payload={
-                            "restaurant_id": rest_id,
-                            "name": data.name,
-                            "slug": data.slug,
-                            "type": "text",
-                        },
-                    )
-                ]
-                # Optional: embed cover image and add point
-                if cover_image_file and cover_image_file.file:
-                    try:
-                        content = await cover_image_file.read()
-                        await cover_image_file.seek(0)
-                        img_vec = embed_image(content, output_dimensionality=EMBED_OUTPUT_DIM)
-                        points.append(
-                            PointStruct(
-                                id=_qdrant_cover_point_id(str(rest_id)),
-                                vector=img_vec,
-                                payload={"restaurant_id": rest_id, "name": data.name, "slug": data.slug, "type": "image"},
-                            )
-                        )
-                    except Exception as e:
-                        logger.warning("Could not embed cover image for Qdrant: %s", e)
-                upsert_points(QDRANT_COLLECTION, points)
-                logger.info("Restaurant %s indexed in Qdrant (RAG)", rest_id)
-        except Exception as e:
-            logger.exception("Qdrant indexing failed (restaurant created in PostgreSQL): %s", e)
-
-        # Fetch created with relations for response
+        # Fetch full restaurant with relations (for response and for Qdrant payload)
         created = await prisma.restaurant.find_unique(
             where={"id": rest_id},
             include={
@@ -363,11 +319,52 @@ async def create_restaurant(
                 "details": True,
             },
         )
-        # Serialize for response (simplified)
-        out = _serialize_restaurant(created) if created else {"id": rest_id}
+        full_payload = _serialize_restaurant(created) if created else {"id": rest_id}
+
+        # Index in Qdrant with full restaurant data (no fields cut; for RAG)
+        searchable_text = _build_searchable_text(data)
+        if not searchable_text:
+            searchable_text = data.name or str(rest_id)
+        try:
+            vectors = embed_text_or_fallback(
+                searchable_text,
+                task_type="RETRIEVAL_DOCUMENT",
+                output_dimensionality=EMBED_OUTPUT_DIM,
+            )
+            if vectors:
+                ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
+                # Store full restaurant document in payload so RAG has all fields
+                text_point_payload = {**full_payload, "type": "text"}
+                points = [
+                    PointStruct(
+                        id=rest_id,
+                        vector=vectors[0],
+                        payload=text_point_payload,
+                    )
+                ]
+                if cover_image_file and cover_image_file.file:
+                    try:
+                        content = await cover_image_file.read()
+                        await cover_image_file.seek(0)
+                        img_vec = embed_image(content, output_dimensionality=EMBED_OUTPUT_DIM)
+                        points.append(
+                            PointStruct(
+                                id=_qdrant_cover_point_id(str(rest_id)),
+                                vector=img_vec,
+                                payload={**full_payload, "type": "image"},
+                            )
+                        )
+                    except Exception as e:
+                        logger.warning("Could not embed cover image for Qdrant: %s", e)
+                upsert_points(QDRANT_COLLECTION, points)
+                logger.info("Restaurant %s indexed in Qdrant (RAG)", rest_id)
+        except Exception as e:
+            logger.exception("Qdrant indexing failed (restaurant created in PostgreSQL): %s", e)
+
+        # Return same serialized data
         return create_success_response(
             message="Restaurant created successfully",
-            data={"restaurant": out},
+            data={"restaurant": full_payload},
         )
     except HTTPException:
         raise
@@ -428,11 +425,32 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
         return None
     sections = []
     for s in getattr(m, "sections", []) or []:
-        items = [{"item_id": i.item_id, "name": i.name, "description": i.description, "price": i.price, "currency": i.currency} for i in (s.items or [])]
+        items = []
+        for i in (s.items or []):
+            item = {
+                "item_id": i.item_id,
+                "name": i.name,
+                "description": i.description,
+                "price": i.price,
+                "currency": i.currency,
+            }
+            if getattr(i, "image_url", None) is not None:
+                item["image_url"] = i.image_url
+            if getattr(i, "image_description", None) is not None:
+                item["image_description"] = i.image_description
+            if getattr(i, "dietary", None) is not None:
+                item["dietary"] = i.dietary
+            if getattr(i, "spice_level", None) is not None:
+                item["spice_level"] = i.spice_level
+            if getattr(i, "allergens", None) is not None:
+                item["allergens"] = i.allergens or []
+            if getattr(i, "tags", None) is not None:
+                item["tags"] = i.tags or []
+            items.append(item)
         sections.append({"section_name": s.name, "items": items})
     return {
         "source_type": m.source_type,
-        "source_url": m.source_url,
+        "source_url": getattr(m, "source_url", None) or "",
         "language": m.language,
         "sections": sections,
     }

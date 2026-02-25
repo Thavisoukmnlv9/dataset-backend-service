@@ -225,8 +225,8 @@ async def update_restaurant(
                 vectors = embed_text_or_fallback(searchable, task_type="RETRIEVAL_DOCUMENT", output_dimensionality=EMBED_OUTPUT_DIM)
                 if vectors:
                     ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
-                    from app.modules.restaurants.services.create import _payload_for_qdrant
-                    qdrant_payload = {**_payload_for_qdrant(_serialize_restaurant(updated)), "type": "text"}
+                    from app.modules.restaurants.services.create import _payload_for_qdrant, _to_json_safe
+                    qdrant_payload = _to_json_safe({**_payload_for_qdrant(_serialize_restaurant(updated)), "type": "text"})
                     upsert_points(
                         QDRANT_COLLECTION,
                         [

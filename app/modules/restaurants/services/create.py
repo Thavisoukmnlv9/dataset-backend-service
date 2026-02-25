@@ -1,11 +1,12 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from fastapi import HTTPException, status, UploadFile
 from app.prisma import prisma
 from app.prisma.generated.fields import Json as PrismaJson
-from app.shared.embeddings import embed_text_or_fallback, embed_image, EMBED_OUTPUT_DIM
+from app.shared.embeddings import embed_text_or_fallback, EMBED_OUTPUT_DIM
 from app.shared.qdrant_client import ensure_collection, upsert_points
 from app.shared.utils.responses.response import create_success_response
 from app.shared.services.infrastructure.storage import storage_service
@@ -21,10 +22,6 @@ logger = logging.getLogger(__name__)
 
 QDRANT_COLLECTION = "restaurants"
 
-# Deterministic UUID for cover-image point (Qdrant only allows UUID or integer IDs)
-def _qdrant_cover_point_id(restaurant_id: str) -> uuid.UUID:
-    return uuid.uuid5(uuid.NAMESPACE_OID, f"{restaurant_id}_cover")
-
 
 def _payload_for_qdrant(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Copy payload and remove cover_image_url, image_url, url so they are not stored in Qdrant."""
@@ -38,6 +35,47 @@ def _payload_for_qdrant(payload: Dict[str, Any]) -> Dict[str, Any]:
         return obj
 
     return drop_keys(payload) if payload else {}
+
+
+def _to_json_safe(obj: Any) -> Any:
+    """Convert payload to JSON-serializable types for Qdrant (enums, datetime, etc.)."""
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, Enum):
+        return obj.value
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat() if hasattr(obj, "isoformat") else str(obj)
+    if isinstance(obj, dict):
+        return {str(k): _to_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_json_safe(x) for x in obj]
+    return str(obj)
+
+
+def _build_searchable_text_from_record(r: Any) -> str:
+    """Build searchable text from a Prisma restaurant record (for sync to Qdrant)."""
+    if not r:
+        return ""
+    parts = [
+        r.name or "",
+        r.short_description or "",
+        r.long_description or "",
+        r.address_text or "",
+        r.district or "",
+        r.province or "",
+        r.country or "",
+    ]
+    for t in (r.tags or []):
+        parts.append(f"{t.tag_type}: {t.tag_value}")
+    if r.menu and getattr(r.menu, "sections", None):
+        for s in r.menu.sections or []:
+            parts.append(s.name)
+            for i in getattr(s, "items", []) or []:
+                parts.append(i.name)
+                if getattr(i, "description", None):
+                    parts.append(i.description)
+    return " ".join(p for p in parts if p).strip() or (r.name or str(r.id))
+
 
 # Path prefix stored in Prisma for uploaded files (e.g. /uploads/restaurants/menu_items/...)
 UPLOADS_PREFIX = "/uploads"
@@ -80,7 +118,8 @@ def _build_searchable_text(data: RestaurantCreate) -> str:
 
 async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
     if not file or not file.filename:
-        logger.debug("No cover image file provided (file=%s, filename=%s)", bool(file), getattr(file, "filename", None))
+        logger.debug("No cover image file provided (file=%s, filename=%s)", bool(
+            file), getattr(file, "filename", None))
         return None
     try:
         if hasattr(file, "file") and file.file is not None and hasattr(file.file, "seek"):
@@ -93,7 +132,6 @@ async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
         logger.warning("Cover image upload returned success=False")
         return None
     data = result.data or {}
-    # Prefer object_name; fallback to url (e.g. /uploads/restaurants/xxx.jpg) and normalize
     object_name = data.get("object_name")
     if object_name:
         path = _to_stored_path(object_name)
@@ -102,7 +140,8 @@ async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
     url = data.get("url")
     if url and isinstance(url, str) and url.strip().startswith("/"):
         return url.strip() if not url.strip().startswith("//") else url.strip()
-    logger.warning("Cover image upload gave no object_name or usable url: data=%s", list(data.keys()))
+    logger.warning(
+        "Cover image upload gave no object_name or usable url: data=%s", list(data.keys()))
     return None
 
 
@@ -238,7 +277,8 @@ async def create_restaurant(
             if data.policies:
                 create_data["policies"] = {
                     "create": [
-                        {"policy_type": p.policy_type.value, "policy_text": p.policy_text}
+                        {"policy_type": p.policy_type.value,
+                            "policy_text": p.policy_text}
                         for p in data.policies
                     ]
                 }
@@ -250,9 +290,12 @@ async def create_restaurant(
                         lang_enum = LanguageCodeEnum(lang_str)
                     except ValueError:
                         continue
-                    name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
-                    short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
-                    trans_list.append({"language": lang_enum.value, "name": name, "short_description": short})
+                    name = tr.get("name") if isinstance(
+                        tr, dict) else getattr(tr, "name", None)
+                    short = tr.get("short_description") if isinstance(
+                        tr, dict) else getattr(tr, "short_description", None)
+                    trans_list.append(
+                        {"language": lang_enum.value, "name": name, "short_description": short})
                 if trans_list:
                     create_data["translations"] = {"create": trans_list}
 
@@ -333,7 +376,8 @@ async def create_restaurant(
                 "details": True,
             },
         )
-        full_payload = _serialize_restaurant(created) if created else {"id": rest_id}
+        full_payload = _serialize_restaurant(
+            created) if created else {"id": rest_id}
 
         # Index in Qdrant with full restaurant data (no fields cut; for RAG)
         searchable_text = _build_searchable_text(data)
@@ -348,8 +392,9 @@ async def create_restaurant(
             if vectors:
                 ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
                 # Store full restaurant document in payload so RAG has all fields (no cover_image_url/image_url/url)
-                qdrant_payload = _payload_for_qdrant(full_payload)
-                text_point_payload = {**qdrant_payload, "type": "text"}
+                qdrant_payload = _to_json_safe(
+                    {**_payload_for_qdrant(full_payload), "type": "text"})
+                text_point_payload = qdrant_payload
                 points = [
                     PointStruct(
                         id=rest_id,
@@ -357,24 +402,12 @@ async def create_restaurant(
                         payload=text_point_payload,
                     )
                 ]
-                if cover_image_file and cover_image_file.file:
-                    try:
-                        content = await cover_image_file.read()
-                        await cover_image_file.seek(0)
-                        img_vec = embed_image(content, output_dimensionality=EMBED_OUTPUT_DIM)
-                        points.append(
-                            PointStruct(
-                                id=_qdrant_cover_point_id(str(rest_id)),
-                                vector=img_vec,
-                                payload={**qdrant_payload, "type": "image"},
-                            )
-                        )
-                    except Exception as e:
-                        logger.warning("Could not embed cover image for Qdrant: %s", e)
+                # Only text point is stored in Qdrant (no type "image" cover point)
                 upsert_points(QDRANT_COLLECTION, points)
                 logger.info("Restaurant %s indexed in Qdrant (RAG)", rest_id)
         except Exception as e:
-            logger.exception("Qdrant indexing failed (restaurant created in PostgreSQL): %s", e)
+            logger.exception(
+                "Qdrant indexing failed (restaurant created in PostgreSQL): %s", e)
 
         # Return same serialized data
         return create_success_response(
@@ -385,6 +418,68 @@ async def create_restaurant(
         raise
     except Exception as e:
         logger.exception("Create restaurant error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+async def sync_restaurants_to_qdrant() -> Dict[str, Any]:
+    """
+    Duplicate all restaurants from PostgreSQL into Qdrant (backfill).
+    Uses same payload shape as create (full document, minus cover_image_url/image_url/url).
+    """
+    try:
+        restaurants = await prisma.restaurant.find_many(
+            include={
+                "gallery": True,
+                "tags": True,
+                "policies": True,
+                "translations": True,
+                "hours": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
+                "details": True,
+            },
+        )
+        if not restaurants:
+            return create_success_response(
+                message="No restaurants to sync",
+                data={"synced": 0, "total": 0},
+            )
+        ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
+        synced = 0
+        for r in restaurants:
+            try:
+                searchable = _build_searchable_text_from_record(r)
+                vectors = embed_text_or_fallback(
+                    searchable,
+                    task_type="RETRIEVAL_DOCUMENT",
+                    output_dimensionality=EMBED_OUTPUT_DIM,
+                )
+                if vectors:
+                    full = _serialize_restaurant(r)
+                    qdrant_payload = _to_json_safe(
+                        {**_payload_for_qdrant(full), "type": "text"})
+                    upsert_points(
+                        QDRANT_COLLECTION,
+                        [
+                            PointStruct(
+                                id=r.id,
+                                vector=vectors[0],
+                                payload=qdrant_payload,
+                            )
+                        ],
+                    )
+                    synced += 1
+            except Exception as e:
+                logger.warning(
+                    "Qdrant sync failed for restaurant %s: %s", r.id, e)
+        return create_success_response(
+            message="Restaurants synced to Qdrant",
+            data={"synced": synced, "total": len(restaurants)},
+        )
+    except Exception as e:
+        logger.exception("sync_restaurants_to_qdrant error: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

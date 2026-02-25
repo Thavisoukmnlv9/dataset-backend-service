@@ -173,6 +173,17 @@ async def vector_search_restaurants(
     return await search_restaurants_vector(query=q, limit=limit)
 
 
+@router.post(
+    "/sync-qdrant",
+    summary="Sync all restaurants to Qdrant",
+    description="Duplicate all restaurants from PostgreSQL into Qdrant (backfill). Admin only.",
+)
+async def sync_restaurants_to_qdrant_route(admin_user=Depends(get_admin_user)):
+    from app.modules.restaurants.services.create import sync_restaurants_to_qdrant
+
+    return await sync_restaurants_to_qdrant()
+
+
 @router.get("/{restaurant_id}", summary="Get restaurant by ID")
 async def get_restaurant(restaurant_id: str, _user=Depends(get_current_active_user)):
     from app.modules.restaurants.services.get_one import get_restaurant as _get_one

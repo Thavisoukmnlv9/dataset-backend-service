@@ -25,6 +25,20 @@ QDRANT_COLLECTION = "restaurants"
 def _qdrant_cover_point_id(restaurant_id: str) -> uuid.UUID:
     return uuid.uuid5(uuid.NAMESPACE_OID, f"{restaurant_id}_cover")
 
+
+def _payload_for_qdrant(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Copy payload and remove cover_image_url, image_url, url so they are not stored in Qdrant."""
+    FIELDS_TO_DROP = frozenset({"cover_image_url", "image_url", "url"})
+
+    def drop_keys(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {k: drop_keys(v) for k, v in obj.items() if k not in FIELDS_TO_DROP}
+        if isinstance(obj, list):
+            return [drop_keys(x) for x in obj]
+        return obj
+
+    return drop_keys(payload) if payload else {}
+
 # Path prefix stored in Prisma for uploaded files (e.g. /uploads/restaurants/menu_items/...)
 UPLOADS_PREFIX = "/uploads"
 
@@ -333,8 +347,9 @@ async def create_restaurant(
             )
             if vectors:
                 ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
-                # Store full restaurant document in payload so RAG has all fields
-                text_point_payload = {**full_payload, "type": "text"}
+                # Store full restaurant document in payload so RAG has all fields (no cover_image_url/image_url/url)
+                qdrant_payload = _payload_for_qdrant(full_payload)
+                text_point_payload = {**qdrant_payload, "type": "text"}
                 points = [
                     PointStruct(
                         id=rest_id,
@@ -351,7 +366,7 @@ async def create_restaurant(
                             PointStruct(
                                 id=_qdrant_cover_point_id(str(rest_id)),
                                 vector=img_vec,
-                                payload={**full_payload, "type": "image"},
+                                payload={**qdrant_payload, "type": "image"},
                             )
                         )
                     except Exception as e:

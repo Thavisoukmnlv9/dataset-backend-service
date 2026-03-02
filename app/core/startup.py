@@ -12,7 +12,7 @@ from .cli_display import ASCII_ART, SERVICE_ICONS, COLORS
 # Backward compatibility
 SERVICE_URLS = get_infrastructure_urls()
 API_INFO = {
-    "name": "dataset Tourism Middleware",
+    "name": "kanom Tourism Middleware",
     "version": "2.1.0",
     "description": "Comprehensive tourism management platform",
     "architecture": "Modular Monolith - Phase 1 Focus",

@@ -46,9 +46,9 @@ USER app
 EXPOSE 8000
 
 # Add labels for better container management
-LABEL maintainer="dataset Team" \
+LABEL maintainer="kanom Team" \
       version="1.0-dev" \
-      description="dataset Tourism Backend Service - Development"
+      description="kanom Tourism Backend Service - Development"
 
 # Start command with hot reload and debugging
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]

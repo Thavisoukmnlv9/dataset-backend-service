@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 class AppSettings(BaseModel):
     """Application-specific settings"""
-    title: str = "dataset Tourism Middleware API"
-    description: str = "Comprehensive API for dataset tourism platform with modular architecture."
+    title: str = "kanom Tourism Middleware API"
+    description: str = "Comprehensive API for kanom tourism platform with modular architecture."
     version: str = "2.1.0"
     contact: Dict[str, str] = {
         "name": "Bounyalith Chanrasanichone",

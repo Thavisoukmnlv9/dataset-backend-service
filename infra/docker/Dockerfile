@@ -67,9 +67,9 @@ USER app
 EXPOSE 8000
 
 # Add labels for better container management
-LABEL maintainer="dataset Team" \
+LABEL maintainer="kanom Team" \
       version="1.0" \
-      description="dataset Tourism Backend Service"
+      description="kanom Tourism Backend Service"
 
 # Health check with better error handling
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

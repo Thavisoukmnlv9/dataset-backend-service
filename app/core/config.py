@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         default="development", description="Environment (development/production)", alias="ENVIRONMENT")
 
     # Domain
-    domain: str = Field(default="http://dataset.duckdns.org",
+    domain: str = Field(default="http://kanom.duckdns.org",
                         description="Domain", alias="DOMAIN")
 
     # JWT Configuration
@@ -117,9 +117,9 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = Field(
         default=None, description="SMTP password", alias="MAIL_PASSWORD")
     smtp_from_email: str = Field(
-        default="noreply@dataset.com", description="From email", alias="MAIL_FROM_EMAIL")
+        default="noreply@kanom.com", description="From email", alias="MAIL_FROM_EMAIL")
     smtp_from_name: str = Field(
-        default="dataset", description="From name", alias="MAIL_FROM_NAME")
+        default="kanom", description="From name", alias="MAIL_FROM_NAME")
     smtp_use_tls: bool = Field(
         default=True, description="Use TLS", alias="MAIL_USE_TLS")
     smtp_use_ssl: bool = Field(
@@ -151,7 +151,7 @@ class Settings(BaseSettings):
     )
     # Remote object storage (minio, s3, wasabi)
     storage_bucket: str = Field(
-        default="dataset-media",
+        default="kanom-media",
         description="Bucket name for object storage",
         alias="STORAGE_BUCKET",
     )

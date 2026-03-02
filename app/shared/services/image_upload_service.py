@@ -220,8 +220,8 @@ async def process_existing_gallery_images_urls(
                 path_part = image_url
             
             # Extract path after bucket name
-            if '/dataset-media/' in path_part:
-                path_part = path_part.split('/dataset-media/')[-1]
+            if '/kanom-media/' in path_part:
+                path_part = path_part.split('/kanom-media/')[-1]
                 # Ensure it starts with expected folder
                 if not path_part.startswith(f'{expected_folder}/'):
                     # Extract just the filename and prepend the expected path

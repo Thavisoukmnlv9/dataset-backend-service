@@ -179,7 +179,7 @@ nano .env  # or your preferred editor
 
 ```env
 # Database Configuration
-DATABASE_URL="postgresql://pern:welcome@localhost:5432/dataset"
+DATABASE_URL="postgresql://pern:welcome@localhost:5432/kanom"
 
 # JWT Configuration - Tourism Optimized
 # Access Token: 60 minutes - Good balance of security and user experience
@@ -234,7 +234,7 @@ MAIL_PORT=587
 MAIL_USERNAME=<your-sendinblue-smtp-username>
 MAIL_PASSWORD=<your-sendinblue-smtp-api-key>
 MAIL_FROM_EMAIL=<your-from-email>
-MAIL_FROM_NAME=dataset
+MAIL_FROM_NAME=kanom
 MAIL_USE_TLS=true
 MAIL_USE_SSL=false
 

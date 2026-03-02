@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.dirname(
 
 USERS_AUTH_DATA = [
     {
-        "email": "admin@dataset.com",
+        "email": "admin@kanom.com",
         "password": "admin123456",
         "first_name": "Admin",
         "last_name": "User",
@@ -38,7 +38,7 @@ USERS_AUTH_DATA = [
         "login_count": 25,
     },
     {
-        "email": "platform.admin@dataset.com",
+        "email": "platform.admin@kanom.com",
         "password": "platform123456",
         "first_name": "Platform",
         "last_name": "Administrator",
@@ -255,7 +255,7 @@ async def seed_users_auth():
 
 async def main():
     """Main function to run the seed script"""
-    print("🚀 dataset Users Authentication Seed Data Script")
+    print("🚀 kanom Users Authentication Seed Data Script")
     print("=" * 60)
 
     try:

@@ -52,7 +52,7 @@ def register_core_routes(app: FastAPI, loaded_services: List[str], failed_servic
     async def root():
         """Root endpoint with API information."""
         return {
-            "message": "Welcome to dataset Tourism Middleware API",
+            "message": "Welcome to kanom Tourism Middleware API",
             "version": "2.1.0",
             "architecture": "Modular Monolith - Phase 1 Focus",
             "phase": "Phase 1 - Core Tourism Services",
@@ -71,7 +71,7 @@ def register_core_routes(app: FastAPI, loaded_services: List[str], failed_servic
 
         return {
             "status": "healthy",
-            "service": "dataset-tourism-middleware",
+            "service": "kanom-tourism-middleware",
             "version": "2.1.0",
             "loaded_services": len(loaded_services),
             "failed_services": len(failed_services),
@@ -83,7 +83,7 @@ def register_core_routes(app: FastAPI, loaded_services: List[str], failed_servic
         """API health check endpoint."""
         return {
             "status": "healthy",
-            "service": "dataset-tourism-middleware",
+            "service": "kanom-tourism-middleware",
             "version": "2.1.0",
             "loaded_services": loaded_services,
             "failed_services": failed_services,

@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
         startup_display.display_full_startup(loaded_services=loaded_count, failed_services=failed_count)
         
         # Log after display (so it doesn't appear above the banner)
-        logger.info("Starting up dataset Tourism Middleware API...")
+        logger.info("Starting up kanom Tourism Middleware API...")
         if success:
             logger.info("Database connected successfully")
         else:
@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
         yield
         
         # Shutdown
-        logger.info("Shutting down dataset Tourism Middleware API...")
+        logger.info("Shutting down kanom Tourism Middleware API...")
         
         # ARQ worker is managed separately
         

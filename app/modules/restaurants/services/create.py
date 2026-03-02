@@ -15,7 +15,6 @@ from qdrant_client.models import PointStruct
 from app.modules.restaurants.schemas.restaurant import (
     RestaurantCreate,
     GalleryImageIn,
-    LanguageCodeEnum,
 )
 
 logger = logging.getLogger(__name__)
@@ -285,17 +284,13 @@ async def create_restaurant(
             if data.translations:
                 trans_list = []
                 for lang, tr in data.translations.items():
-                    lang_str = lang.upper() if isinstance(lang, str) else lang
-                    try:
-                        lang_enum = LanguageCodeEnum(lang_str)
-                    except ValueError:
-                        continue
+                    lang_str = lang.upper() if isinstance(lang, str) else str(lang).upper()
                     name = tr.get("name") if isinstance(
                         tr, dict) else getattr(tr, "name", None)
                     short = tr.get("short_description") if isinstance(
                         tr, dict) else getattr(tr, "short_description", None)
                     trans_list.append(
-                        {"language": lang_enum.value, "name": name, "short_description": short})
+                        {"language": lang_str, "name": name, "short_description": short})
                 if trans_list:
                     create_data["translations"] = {"create": trans_list}
 
@@ -333,7 +328,7 @@ async def create_restaurant(
                         "source_type": menu.source_type,
                         "source_version": menu.source_version,
                         "source_url": menu.source_url,
-                        "language": menu.language.value if menu.language else None,
+                        "language": menu.language if menu.language else None,
                         "extracted_at": menu.extracted_at,
                         "metadata": PrismaJson(menu.metadata) if menu.metadata is not None else None,
                         "sections": {"create": sections_create},

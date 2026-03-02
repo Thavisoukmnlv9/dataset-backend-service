@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.restaurants.schemas.restaurant import LanguageCodeEnum, RestaurantUpdate
+from app.modules.restaurants.schemas.restaurant import RestaurantUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ async def update_restaurant(
         if data.walk_in_supported is not None:
             update_payload["walk_in_supported"] = data.walk_in_supported
         if data.languages_supported is not None:
-            update_payload["languages_supported"] = [c.value for c in data.languages_supported]
+            update_payload["languages_supported"] = [c if isinstance(c, str) else str(c) for c in data.languages_supported]
         if data.cover_image_url is not None:
             update_payload["cover_image_url"] = data.cover_image_url
         if data.rating_avg is not None:
@@ -151,15 +151,11 @@ async def update_restaurant(
         if data.translations is not None:
             await prisma.restauranttranslation.delete_many(where={"restaurant_id": restaurant_id})
             for lang, tr in data.translations.items():
-                lang_str = lang.upper() if isinstance(lang, str) else lang
-                try:
-                    lang_enum = LanguageCodeEnum(lang_str)
-                except ValueError:
-                    continue
+                lang_str = lang.upper() if isinstance(lang, str) else str(lang).upper()
                 name = tr.get("name") if isinstance(tr, dict) else getattr(tr, "name", None)
                 short = tr.get("short_description") if isinstance(tr, dict) else getattr(tr, "short_description", None)
                 await prisma.restauranttranslation.create(
-                    data={"restaurant_id": restaurant_id, "language": lang_enum.value, "name": name, "short_description": short},
+                    data={"restaurant_id": restaurant_id, "language": lang_str, "name": name, "short_description": short},
                 )
         if data.category_details is not None:
             cd = data.category_details

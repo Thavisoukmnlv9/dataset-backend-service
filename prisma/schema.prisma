@@ -235,7 +235,7 @@ model Restaurant {
   booking_supported Boolean @default(false)
   walk_in_supported Boolean @default(true)
 
-  languages_supported LanguageCode[]
+  languages_supported String[]
 
   cover_image_url String?
   rating_avg      Float?
@@ -267,7 +267,6 @@ model RestaurantGalleryImage {
   restaurant_id String
   url           String
   description   String?
-
   restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])
@@ -301,7 +300,7 @@ model RestaurantPolicy {
 model RestaurantTranslation {
   id                String       @id @default(uuid())
   restaurant_id     String
-  language          LanguageCode
+  language          String
   name              String?
   short_description String?
   restaurant        Restaurant   @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
@@ -327,7 +326,7 @@ model RestaurantMenu {
   source_type    String
   source_version String?
   source_url     String?
-  language       LanguageCode?
+  language       String?
   extracted_at   DateTime?
   metadata       Json?
 
@@ -431,12 +430,6 @@ enum PolicyType {
   DEPOSIT
   RESERVATION
   OTHER
-}
-
-enum LanguageCode {
-  LO
-  EN
-  TH
 }
 
 enum SpiceLevel {

@@ -45,12 +45,6 @@ class PolicyTypeEnum(str, Enum):
     OTHER = "OTHER"
 
 
-class LanguageCodeEnum(str, Enum):
-    LO = "LO"
-    EN = "EN"
-    TH = "TH"
-
-
 class SpiceLevelEnum(str, Enum):
     MILD = "MILD"
     MEDIUM = "MEDIUM"
@@ -115,7 +109,7 @@ class MenuIn(BaseModel):
     source_version: Optional[str] = None
     source_url: Optional[str] = None
     source_file: Optional[Any] = None  # multipart placeholder; send file as menu_source_file form field
-    language: Optional[LanguageCodeEnum] = None
+    language: Optional[str] = None
     extracted_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
     sections: List[MenuSectionIn] = Field(default_factory=list)
@@ -161,7 +155,7 @@ class RestaurantCreate(BaseModel):
     max_price: Optional[int] = None
     booking_supported: bool = False
     walk_in_supported: bool = True
-    languages_supported: List[LanguageCodeEnum] = Field(default_factory=list)
+    languages_supported: List[str] = Field(default_factory=list)
     cover_image_url: Optional[str] = None
     cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
@@ -200,7 +194,7 @@ class RestaurantUpdate(BaseModel):
     max_price: Optional[int] = None
     booking_supported: Optional[bool] = None
     walk_in_supported: Optional[bool] = None
-    languages_supported: Optional[List[LanguageCodeEnum]] = None
+    languages_supported: Optional[List[str]] = None
     cover_image_url: Optional[str] = None
     rating_avg: Optional[float] = None
     rating_count: Optional[int] = None

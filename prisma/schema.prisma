@@ -60,8 +60,8 @@ model User {
 
   is_active Boolean @default(true)
 
-  refresh_tokens RefreshToken[]
-  sessions       Session[]
+  refresh_tokens  RefreshToken[]
+  sessions        Session[]
   rbac_user_roles RbacUserRole[]
 
   @@unique([google_id, facebook_id, apple_id])
@@ -275,12 +275,11 @@ model RestaurantGalleryImage {
 }
 
 model RestaurantTag {
-  id            String  @id @default(uuid())
+  id            String     @id @default(uuid())
   restaurant_id String
   tag_type      TagType
   tag_value     String
-
-  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])
   @@index([tag_type, tag_value])
@@ -292,8 +291,7 @@ model RestaurantPolicy {
   restaurant_id String
   policy_type   PolicyType
   policy_text   String
-
-  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])
   @@index([policy_type])
@@ -301,14 +299,12 @@ model RestaurantPolicy {
 }
 
 model RestaurantTranslation {
-  id            String       @id @default(uuid())
-  restaurant_id String
-  language      LanguageCode
-
+  id                String       @id @default(uuid())
+  restaurant_id     String
+  language          LanguageCode
   name              String?
   short_description String?
-
-  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  restaurant        Restaurant   @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@unique([restaurant_id, language])
   @@index([language])
@@ -343,13 +339,12 @@ model RestaurantMenu {
 }
 
 model MenuSection {
-  id         String @id @default(uuid())
+  id         String         @id @default(uuid())
   menu_id    String
   name       String
-  sort_order Int    @default(0)
-
-  menu  RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
-  items MenuItem[]
+  sort_order Int            @default(0)
+  menu       RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items      MenuItem[]
 
   @@index([menu_id])
   @@map("menu_sections")

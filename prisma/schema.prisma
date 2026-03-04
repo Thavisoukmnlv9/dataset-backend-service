@@ -520,7 +520,6 @@ model Cafe {
   cancellation_policy_summary String?   @db.Text
   child_friendly              Boolean  @default(false)
   pet_friendly                Boolean  @default(false)
-  accessibility_features      Json?
   review_summary_text         String?   @db.Text
   last_verified_at            DateTime?
 

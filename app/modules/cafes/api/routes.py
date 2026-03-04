@@ -23,7 +23,7 @@ router = APIRouter(prefix="/cafes", tags=["Cafes"])
 _FORM_JSON_KEYS = frozenset({
     "vendor", "languages_supported", "gallery_urls", "gallery_files", "gallery_descriptions", "tags", "hours", "opening_hours", "weekly_schedule",
     "policies", "translations", "category_details",
-    "accessibility_features", "menu",
+    "menu",
 })
 
 _GALLERY_FILE_PATTERN = re.compile(r"^gallery_urls\.url_file\[(\d+)\]$")

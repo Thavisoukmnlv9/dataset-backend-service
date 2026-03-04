@@ -125,8 +125,6 @@ async def update_cafe(
             update_payload["child_friendly"] = data.child_friendly
         if data.pet_friendly is not None:
             update_payload["pet_friendly"] = data.pet_friendly
-        if data.accessibility_features is not None:
-            update_payload["accessibility_features"] = PrismaJson(data.accessibility_features)
         if data.languages_supported is not None:
             update_payload["languages_supported"] = [c if isinstance(c, str) else str(c) for c in data.languages_supported]
         if data.cover_image_url is not None:

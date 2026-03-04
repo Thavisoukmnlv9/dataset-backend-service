@@ -692,3 +692,201 @@ model CafeTranslation {
   @@index([language])
   @@map("cafe_translations")
 }
+
+model Bar {
+  id       String @id @default(uuid())
+  category String
+  name     String
+  slug     String @unique
+  status   String
+
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String?
+  long_description  String?
+
+  country      String
+  province     String
+  district     String
+  village      String?
+  address_text String?
+
+  latitude  Float?
+  longitude Float?
+
+  price_band String?
+  currency   String?
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean @default(false)
+  walk_in_supported Boolean @default(true)
+
+  languages_supported String[]
+
+  cover_image_url String?
+  rating_avg      Float?
+  rating_count    Int     @default(0)
+
+  trust_score      Int?
+  quality_score    Int?
+  popularity_score Int?
+
+  gallery      BarGalleryImage[]
+  tags         BarTag[]
+  policies     BarPolicy[]
+  translations BarTranslation[]
+  hours        BarHours?
+  menu         BarMenu?
+  details      BarDetails?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+  @@map("bars")
+}
+
+model BarGalleryImage {
+  id          String  @id @default(uuid())
+  bar_id      String
+  url         String
+  description String?
+  is_cover    Boolean @default(false)
+  bar         Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@map("bar_gallery_images")
+}
+
+model BarTag {
+  id        String @id @default(uuid())
+  bar_id    String
+  tag_type  String
+  tag_value String
+  bar       Bar    @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@index([tag_type, tag_value])
+  @@map("bar_tags")
+}
+
+model BarPolicy {
+  id          String     @id @default(uuid())
+  bar_id      String
+  policy_type PolicyType
+  policy_text String
+  bar         Bar        @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@index([policy_type])
+  @@map("bar_policies")
+}
+
+model BarTranslation {
+  id                String  @id @default(uuid())
+  bar_id            String
+  language          String
+  name              String?
+  short_description String?
+  bar               Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@unique([bar_id, language])
+  @@index([language])
+  @@map("bar_translations")
+}
+
+model BarHours {
+  id              String  @id @default(uuid())
+  bar_id          String  @unique
+  timezone        String?
+  weekly_schedule Json
+  special_notes   Json? // array of strings
+  bar             Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@map("bar_hours")
+}
+
+model BarMenu {
+  id     String @id @default(uuid())
+  bar_id String @unique
+
+  source_type    String
+  source_version String?
+  source_url     String?
+  language       String?
+  extracted_at   DateTime?
+  metadata       Json?
+
+  bar             Bar              @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+  barMenuSections BarMenuSection[]
+
+  @@index([bar_id])
+  @@map("bar_menus")
+}
+
+model BarMenuSection {
+  id          String        @id @default(uuid())
+  menu_id     String
+  name        String
+  source_type String?
+  sort_order  Int           @default(0)
+  menu        BarMenu       @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       BarMenuItem[]
+
+  @@index([menu_id])
+  @@map("bar_menu_sections")
+}
+
+model BarMenuItem {
+  id               String          @id @default(uuid())
+  section_id       String
+  name             String
+  description      String?
+  price            Int?
+  currency         String?
+  image_url        String[]
+  dietary          Json?
+  spice_level      SpiceLevel?
+  allergens        String[]
+  tags             String[]
+  section          BarMenuSection  @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@map("bar_menu_items")
+}
+
+model BarDetails {
+  id                     String   @id @default(uuid())
+  bar_id                 String   @unique
+  cuisine_types          String[]
+  meal_types             String[]
+  avg_spend_per_person   Int?
+  dietary_options        Json?
+  reservation_supported  Boolean  @default(false)
+  reservation_required   Boolean  @default(false)
+  seating_capacity       Int?
+  indoor_seating         Boolean  @default(false)
+  outdoor_seating        Boolean  @default(false)
+  takeaway_available     Boolean  @default(false)
+  delivery_available     Boolean  @default(false)
+  payment_methods        String[]
+  signature_dishes       String[]
+  alcohol_served         Boolean  @default(false)
+  parking_available      Boolean  @default(false)
+  wifi_available         Boolean  @default(false)
+  noise_level            String?
+  suitable_for           String[]
+  best_time_to_visit     String?
+  wait_time_peak_minutes Int?
+  bar                    Bar      @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@map("bar_details")
+}

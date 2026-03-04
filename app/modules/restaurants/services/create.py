@@ -218,7 +218,6 @@ async def create_restaurant(
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
 
-    # Apply file uploads
     cover_url = await _upload_cover_image(cover_image_file)
     if cover_url:
         data.cover_image_url = cover_url
@@ -231,12 +230,6 @@ async def create_restaurant(
                 data.gallery_urls[i].url = gu.url
         else:
             data.gallery_urls = gallery_uploaded
-        # Merge gallery_descriptions (id -> description) by index with uploaded files
-        if getattr(data, "gallery_descriptions", None) and isinstance(data.gallery_descriptions, dict):
-            desc_list = list(data.gallery_descriptions.values())
-            for i, g in enumerate(data.gallery_urls):
-                if i < len(desc_list) and desc_list[i]:
-                    g.description = desc_list[i]
     if menu_source_url and data.menu:
         data.menu.source_url = menu_source_url
 
@@ -283,8 +276,6 @@ async def create_restaurant(
                 "trust_score": data.trust_score,
                 "quality_score": data.quality_score,
                 "popularity_score": data.popularity_score,
-                "created_at": data.created_at or now,
-                "updated_at": now,
             }
 
             if data.gallery_urls:
@@ -361,10 +352,7 @@ async def create_restaurant(
                     "create": {
                         "source_type": menu.source_type,
                         "source_version": menu.source_version,
-                        "source_url": menu.source_url,
                         "language": menu.language if menu.language else None,
-                        "extracted_at": menu.extracted_at,
-                        "metadata": PrismaJson(menu.metadata) if menu.metadata is not None else None,
                         "sections": {"create": sections_create},
                     }
                 }
@@ -427,7 +415,6 @@ async def create_restaurant(
             )
             if vectors:
                 ensure_collection(QDRANT_COLLECTION, EMBED_OUTPUT_DIM)
-                # Store full restaurant document in payload so RAG has all fields (no cover_image_url/image_url/url)
                 qdrant_payload = _to_json_safe(
                     {**_payload_for_qdrant(full_payload), "type": "text"})
                 text_point_payload = qdrant_payload
@@ -438,14 +425,12 @@ async def create_restaurant(
                         payload=text_point_payload,
                     )
                 ]
-                # Only text point is stored in Qdrant (no type "image" cover point)
                 upsert_points(QDRANT_COLLECTION, points)
                 logger.info("Restaurant %s indexed in Qdrant (RAG)", rest_id)
         except Exception as e:
             logger.exception(
                 "Qdrant indexing failed (restaurant created in PostgreSQL): %s", e)
 
-        # Return same serialized data
         return create_success_response(
             message="Restaurant created successfully",
             data={"restaurant": full_payload},
@@ -520,7 +505,6 @@ async def sync_restaurants_to_qdrant() -> Dict[str, Any]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
-
 
 def _serialize_restaurant(r: Any) -> Dict[str, Any]:
     """Turn Prisma restaurant model into JSON-serializable dict."""

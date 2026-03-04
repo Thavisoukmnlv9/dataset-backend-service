@@ -154,13 +154,11 @@ class CategoryDetailsIn(BaseModel):
 class RestaurantCreate(BaseModel):
     """Payload to create a restaurant (e.g. from restaurant.json or multipart form)."""
     id: Optional[str] = None  # If omitted, server can generate
-    # Vendor / contact (from form)
     vendor_name: Optional[str] = None
     contact_phone: Optional[str] = None
     whatsapp: Optional[str] = None
     email: Optional[str] = None
     verification_status: Optional[VerificationStatusEnum] = None
-    # Listing
     category: ListingCategoryEnum = ListingCategoryEnum.RESTAURANT
     name: str
     slug: Optional[str] = None  # Generated from name if omitted
@@ -184,13 +182,12 @@ class RestaurantCreate(BaseModel):
     cover_image_url: Optional[str] = None
     cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
-    gallery_descriptions: Optional[Dict[str, str]] = None  # id -> description; merged with gallery_files by index
     rating_avg: Optional[float] = None
     rating_count: int = 0
     trust_score: Optional[int] = None
     quality_score: Optional[int] = None
     popularity_score: Optional[int] = None
-    tags: List[Union[TagIn, str]] = Field(default_factory=list)  # str -> TagIn(tag_type=OTHER, tag_value=s)
+    tags: List[Union[TagIn, str]] = Field(default_factory=list)
     hours: Optional[HoursIn] = None
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None

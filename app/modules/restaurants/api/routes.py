@@ -214,7 +214,7 @@ async def create_restaurant(request: Request, admin_user=Depends(get_admin_user)
     from app.modules.restaurants.services.create import create_restaurant as _create
     
     form = await request.form()
-    form_dict = dict(form)  # for parsing; duplicate keys get last value
+    form_dict = dict(form)
 
     if "data" in form_dict and not _is_upload_file(form_dict.get("data")):
         data_str = form_dict["data"]

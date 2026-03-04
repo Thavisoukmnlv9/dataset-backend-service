@@ -262,6 +262,18 @@ class CafeCreate(BaseModel):
             data = {**data, "hours": data["opening_hours"]}
         return data
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_accessibility_features(cls, data: Any) -> Any:
+        """Ensure accessibility_features is None or a dict (avoid Union/required parse errors)."""
+        if not isinstance(data, dict):
+            return data
+        v = data.get("accessibility_features")
+        if v is None or isinstance(v, dict):
+            return data
+        data = {**data, "accessibility_features": None}
+        return data
+
     @model_validator(mode="after")
     def normalize_tags(self) -> "CafeCreate":
         normalized: List[TagIn] = []
@@ -322,6 +334,18 @@ class CafeUpdate(BaseModel):
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
     menu: Optional[MenuIn] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_accessibility_features(cls, data: Any) -> Any:
+        """Ensure accessibility_features is None or a dict (avoid Union/required parse errors)."""
+        if not isinstance(data, dict):
+            return data
+        v = data.get("accessibility_features")
+        if v is None or isinstance(v, dict):
+            return data
+        data = {**data, "accessibility_features": None}
+        return data
 
 
 class CafeFilters(BaseModel):

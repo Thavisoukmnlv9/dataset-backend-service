@@ -60,6 +60,12 @@ class PolicyTypeEnum(str, Enum):
     OTHER = "OTHER"
 
 
+class SpiceLevelEnum(str, Enum):
+    MILD = "MILD"
+    MEDIUM = "MEDIUM"
+    HOT = "HOT"
+
+
 # ── Vendor (inline create) ─────────────────────────────────────────────────
 
 class VendorCreate(BaseModel):
@@ -149,6 +155,51 @@ class CafeDetailsIn(BaseModel):
     view_type: Optional[str] = None
 
 
+# ── Menu (same structure as restaurant) ─────────────────────────────────────
+
+class MenuItemIn(BaseModel):
+    item_id: Optional[str] = None
+    name: str
+    description: Optional[str] = None
+    price: Optional[int] = None
+    currency: Optional[str] = None
+    image_url: List[str] = Field(default_factory=list)
+    image_description: Optional[str] = None
+    image_file: Optional[Any] = None  # multipart placeholder
+    dietary: Optional[Dict[str, Any]] = None
+    spice_level: Optional[SpiceLevelEnum] = None
+    allergens: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def image_url_to_list(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "image_url" in data:
+            v = data["image_url"]
+            if isinstance(v, str):
+                data = {**data, "image_url": [v] if v.strip() else []}
+            elif v is None:
+                data = {**data, "image_url": []}
+        return data
+
+
+class MenuSectionIn(BaseModel):
+    section_name: str
+    source_type: Optional[str] = None
+    items: List[MenuItemIn]
+
+
+class MenuIn(BaseModel):
+    source_type: str = "menu"
+    source_version: Optional[str] = None
+    source_url: Optional[str] = None
+    source_file: Optional[Any] = None  # multipart: menu_source_file
+    language: Optional[str] = None
+    extracted_at: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+    sections: List[MenuSectionIn] = Field(default_factory=list)
+
+
 # ── Main cafe payload ──────────────────────────────────────────────────────
 
 class CafeCreate(BaseModel):
@@ -207,6 +258,7 @@ class CafeCreate(BaseModel):
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
     rag_sources: Optional[List[RagSourceIn]] = None
+    menu: Optional[MenuIn] = None
 
     @model_validator(mode="after")
     def normalize_tags(self) -> "CafeCreate":
@@ -264,6 +316,7 @@ class CafeUpdate(BaseModel):
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
     rag_sources: Optional[List[RagSourceIn]] = None
+    menu: Optional[MenuIn] = None
 
 
 class CafeFilters(BaseModel):

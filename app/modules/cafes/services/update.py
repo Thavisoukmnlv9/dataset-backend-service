@@ -24,6 +24,7 @@ async def update_cafe(
     data: CafeUpdate,
     cover_image_file: Optional[UploadFile] = None,
     gallery_files: Optional[List[UploadFile]] = None,
+    menu_source_file: Optional[UploadFile] = None,
 ) -> Dict[str, Any]:
     """Update cafe; upload files if provided."""
     try:
@@ -37,6 +38,7 @@ async def update_cafe(
                 "policies": True,
                 "translations": True,
                 "details": True,
+                "menu": True,
                 "rag_sources": {"include": {"chunks": True}},
             },
         )
@@ -61,6 +63,15 @@ async def update_cafe(
                         new_urls.append(path)
             if new_urls:
                 data.gallery_urls = list(existing.gallery_urls or []) + new_urls
+        if menu_source_file and getattr(menu_source_file, "filename", None) and getattr(existing, "menu", None) and existing.menu:
+            result = await storage_service.upload_file(menu_source_file, "cafes/menus", auto_resize=False)
+            if result.success and result.data:
+                path = _to_stored_path(result.data.get("object_name"))
+                if path:
+                    await prisma.cafemenu.update(
+                        where={"id": existing.menu.id},
+                        data={"source_url": path},
+                    )
 
         update_payload: Dict[str, Any] = {}
         if data.name is not None:
@@ -245,6 +256,44 @@ async def update_cafe(
                         ]
                     )
 
+        if data.menu is not None:
+            if getattr(existing, "menu", None) and existing.menu:
+                await prisma.cafemenu.delete(where={"id": existing.menu.id})
+            if data.menu.sections:
+                menu = data.menu
+                sections_create = []
+                for i, sec in enumerate(menu.sections or []):
+                    items_create = []
+                    for item in sec.items or []:
+                        items_create.append({
+                            "item_id": item.item_id,
+                            "name": item.name,
+                            "description": item.description,
+                            "price": item.price,
+                            "currency": item.currency,
+                            "image_url": item.image_url,
+                            "image_description": item.image_description,
+                            "dietary": PrismaJson(item.dietary) if item.dietary is not None else None,
+                            "spice_level": item.spice_level.value if item.spice_level else None,
+                            "allergens": item.allergens or [],
+                            "tags": item.tags or [],
+                        })
+                    sections_create.append({
+                        "name": sec.section_name,
+                        "source_type": sec.source_type if getattr(sec, "source_type", None) else None,
+                        "sort_order": i,
+                        "items": {"create": items_create},
+                    })
+                await prisma.cafemenu.create(
+                    data={
+                        "cafe_id": cafe_id,
+                        "source_type": menu.source_type,
+                        "source_version": menu.source_version,
+                        "language": menu.language if menu.language else None,
+                        "sections": {"create": sections_create},
+                    }
+                )
+
         updated = await prisma.cafe.find_unique(
             where={"id": cafe_id},
             include={
@@ -255,6 +304,7 @@ async def update_cafe(
                 "policies": True,
                 "translations": True,
                 "details": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
                 "rag_sources": {"include": {"chunks": True}},
             },
         )

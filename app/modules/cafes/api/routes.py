@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
@@ -21,8 +22,10 @@ router = APIRouter(prefix="/cafes", tags=["Cafes"])
 _FORM_JSON_KEYS = frozenset({
     "vendor", "languages_supported", "gallery_urls", "tags", "hours", "weekly_schedule",
     "media", "policies", "translations", "category_details", "rag_sources",
-    "accessibility_features",
+    "accessibility_features", "menu",
 })
+
+_MENU_IMAGE_PATTERN = re.compile(r"^menu\.sections\[(\d+)\]\.items\[(\d+)\]\.image_file(?:\[(\d+)\])?$")
 
 
 def _is_upload_file(value: Any) -> bool:
@@ -47,19 +50,37 @@ def _parse_form_payload(form: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 
-def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile], List[UploadFile]]:
+def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile], List[UploadFile], Optional[UploadFile], Dict[Tuple[int, int], List[UploadFile]]]:
+    """Extract cover_image_file, gallery files, menu_source_file, menu item image files."""
     cover_file: Optional[UploadFile] = None
     gallery_list: List[UploadFile] = []
+    menu_source_file: Optional[UploadFile] = None
+    menu_item_by_index: Dict[Tuple[int, int], Dict[int, UploadFile]] = {}
     for key, value in form.items():
         if not _is_upload_file(value):
             continue
         if key in ("cover_image_file", "cover_image", "coverImageFile"):
             cover_file = value
+        elif key == "menu_source_file":
+            menu_source_file = value
         elif key == "gallery_files" or (key.startswith("gallery_") and key[8:].isdigit()):
             gallery_list.append(value)
+        else:
+            m = _MENU_IMAGE_PATTERN.match(key)
+            if m:
+                sec_idx = int(m.group(1))
+                item_idx = int(m.group(2))
+                file_idx = int(m.group(3)) if m.group(3) is not None else 0
+                k = (sec_idx, item_idx)
+                if k not in menu_item_by_index:
+                    menu_item_by_index[k] = {}
+                menu_item_by_index[k][file_idx] = value
     if "gallery_files" in form and _is_upload_file(form.get("gallery_files")):
         gallery_list = [form["gallery_files"]]
-    return cover_file, gallery_list
+    menu_item_files_clean: Dict[Tuple[int, int], List[UploadFile]] = {}
+    for k, by_idx in menu_item_by_index.items():
+        menu_item_files_clean[k] = [by_idx[i] for i in sorted(by_idx)]
+    return cover_file, gallery_list, menu_source_file, menu_item_files_clean
 
 
 @router.get("", summary="List cafes")
@@ -102,6 +123,7 @@ async def create_cafe_route(request: Request, admin_user=Depends(get_admin_user)
         body = await request.json()
         payload = body
         cover_file, gallery_files = None, []
+        menu_source_file, menu_item_files = None, {}
     else:
         form = await request.form()
         form_dict = dict(form)
@@ -109,13 +131,15 @@ async def create_cafe_route(request: Request, admin_user=Depends(get_admin_user)
             payload = json.loads(form_dict["data"])
         else:
             payload = _parse_form_payload(form_dict)
-        cover_file, gallery_files = _collect_files_from_form(form_dict)
+        cover_file, gallery_files, menu_source_file, menu_item_files = _collect_files_from_form(form_dict)
 
     cafe_data = CafeCreate.model_validate(payload)
     return await _create(
         cafe_data,
         cover_image_file=cover_file,
         gallery_files=gallery_files,
+        menu_source_file=menu_source_file,
+        menu_item_files=menu_item_files,
     )
 
 
@@ -124,6 +148,7 @@ async def update_cafe_route(
     cafe_id: str,
     data: str = Form(..., description="JSON string of partial update (CafeUpdate)"),
     cover_image_file: Optional[UploadFile] = File(None),
+    menu_source_file: Optional[UploadFile] = File(None),
     gallery_0: Optional[UploadFile] = File(None),
     gallery_1: Optional[UploadFile] = File(None),
     gallery_2: Optional[UploadFile] = File(None),
@@ -138,6 +163,7 @@ async def update_cafe_route(
         cafe_id,
         update_data,
         cover_image_file=cover_image_file,
+        menu_source_file=menu_source_file,
         gallery_files=gallery_files,
     )
 

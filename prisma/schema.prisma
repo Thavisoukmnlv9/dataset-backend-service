@@ -351,7 +351,7 @@ model MenuSection {
   id          String         @id @default(uuid())
   menu_id     String
   name        String
-  source_type String? // MAIN, SIDE, DRINK, DESSERT
+  source_type String?
   sort_order  Int            @default(0)
   menu        RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
   items       MenuItem[]
@@ -563,6 +563,7 @@ model Cafe {
   policies     CafePolicy[]
   translations CafeTranslation[]
   rag_sources  RagSource[]
+  menu         CafeMenu?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -579,7 +580,7 @@ model CafeDetails {
   id                      String   @id @default(uuid())
   cafe_id                 String   @unique
   cafe_type               String?  @db.VarChar(50)
-  coffee_styles           String[] // espresso, pour_over, cold_brew, latte, americano, etc.
+  coffee_styles           String[] 
   tea_options             Boolean  @default(false)
   dessert_available       Boolean  @default(false)
   avg_spend_per_person    Int?
@@ -686,4 +687,56 @@ model RagChunk {
   @@index([rag_source_id])
   @@index([chunk_type])
   @@map("rag_chunks")
+}
+
+model CafeMenu {
+  id         String  @id @default(uuid())
+  cafe_id    String  @unique
+  source_type    String
+  source_version String?
+  source_url     String?
+  language       String?
+  extracted_at   DateTime?
+  metadata       Json?
+
+  cafe      Cafe             @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  sections  CafeMenuSection[]
+
+  @@index([cafe_id])
+  @@map("cafe_menus")
+}
+
+model CafeMenuSection {
+  id          String      @id @default(uuid())
+  menu_id     String
+  name        String
+  source_type String?
+  sort_order  Int         @default(0)
+  menu        CafeMenu    @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       CafeMenuItem[]
+
+  @@index([menu_id])
+  @@map("cafe_menu_sections")
+}
+
+model CafeMenuItem {
+  id         String  @id @default(uuid())
+  section_id String
+  item_id    String?
+
+  name               String
+  description        String?
+  price              Int?
+  currency           String?
+  image_url          String[]
+  image_description  String?
+  dietary            Json?
+  spice_level        SpiceLevel?
+  allergens          String[]
+  tags               String[]
+  section            CafeMenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@index([item_id])
+  @@map("cafe_menu_items")
 }

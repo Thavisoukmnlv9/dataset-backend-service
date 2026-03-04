@@ -23,6 +23,7 @@ async def get_cafe(cafe_id: str) -> Dict[str, Any]:
                 "policies": True,
                 "translations": True,
                 "details": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
                 "rag_sources": {"include": {"chunks": True}},
             },
         )

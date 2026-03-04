@@ -2,7 +2,7 @@
 import logging
 import re
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, status, UploadFile
 
@@ -138,6 +138,7 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
         "translations": {t.language: {"name": t.name, "short_description": t.short_description, "long_description": getattr(t, "long_description", None)} for t in (c.translations or [])},
         "category_details": _serialize_details(c.details) if c.details else None,
         "rag_sources": [_serialize_rag_source(rs) for rs in (c.rag_sources or [])],
+        "menu": _serialize_cafe_menu(c.menu) if getattr(c, "menu", None) else None,
     }
 
 
@@ -238,6 +239,45 @@ def _serialize_rag_source(rs: Any) -> Dict[str, Any]:
     }
 
 
+def _serialize_cafe_menu(m: Any) -> Optional[Dict[str, Any]]:
+    if not m:
+        return None
+    sections = []
+    for s in getattr(m, "sections", []) or []:
+        items = []
+        for i in (getattr(s, "items", None) or []):
+            item = {
+                "item_id": getattr(i, "item_id", None),
+                "name": i.name,
+                "description": getattr(i, "description", None),
+                "price": getattr(i, "price", None),
+                "currency": getattr(i, "currency", None),
+            }
+            item["image_url"] = [path_to_upload_url(u) for u in (getattr(i, "image_url", None) or [])]
+            if getattr(i, "image_description", None) is not None:
+                item["image_description"] = i.image_description
+            if getattr(i, "dietary", None) is not None:
+                item["dietary"] = i.dietary
+            if getattr(i, "spice_level", None) is not None:
+                item["spice_level"] = i.spice_level
+            if getattr(i, "allergens", None) is not None:
+                item["allergens"] = i.allergens or []
+            if getattr(i, "tags", None) is not None:
+                item["tags"] = i.tags or []
+            items.append(item)
+        sections.append({
+            "section_name": s.name,
+            "source_type": getattr(s, "source_type", None),
+            "items": items,
+        })
+    return {
+        "source_type": m.source_type,
+        "source_url": path_to_upload_url(getattr(m, "source_url", None)) or "",
+        "language": getattr(m, "language", None),
+        "sections": sections,
+    }
+
+
 def _to_prisma_weekly_schedule(hours: Optional[Any]) -> Any:
     if not hours or not getattr(hours, "weekly_schedule", None):
         return {}
@@ -248,6 +288,8 @@ async def create_cafe(
     data: CafeCreate,
     cover_image_file: Optional[UploadFile] = None,
     gallery_files: Optional[List[UploadFile]] = None,
+    menu_source_file: Optional[UploadFile] = None,
+    menu_item_files: Optional[Dict[Tuple[int, int], List[UploadFile]]] = None,
 ) -> Dict[str, Any]:
     vendor_id: Optional[str] = data.vendor_id
     if data.vendor and not vendor_id:
@@ -281,6 +323,39 @@ async def create_cafe(
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
     if gallery_uploaded:
         data.gallery_urls = list(data.gallery_urls) + gallery_uploaded
+
+    async def _upload_menu_source(file: Optional[UploadFile]) -> Optional[str]:
+        if not file or not getattr(file, "filename", None):
+            return None
+        result = await storage_service.upload_file(file, "cafes/menus", auto_resize=False)
+        if result.success and result.data:
+            return _to_stored_path(result.data.get("object_name"))
+        return None
+
+    async def _upload_single_file(file: UploadFile, path_prefix: str) -> Optional[str]:
+        if not file or not getattr(file, "filename", None):
+            return None
+        result = await storage_service.upload_file(file, path_prefix)
+        if result.success and result.data:
+            return _to_stored_path(result.data.get("object_name"))
+        return None
+
+    menu_source_url = await _upload_menu_source(menu_source_file)
+    if menu_source_url and data.menu:
+        data.menu.source_url = menu_source_url
+    if menu_item_files and data.menu and data.menu.sections:
+        for (sec_idx, item_idx), files in sorted(menu_item_files.items()):
+            if not files or sec_idx >= len(data.menu.sections) or item_idx >= len(data.menu.sections[sec_idx].items):
+                continue
+            item = data.menu.sections[sec_idx].items[item_idx]
+            existing = list(item.image_url) if item.image_url else []
+            new_urls = []
+            for f in files:
+                url = await _upload_single_file(f, "cafes/menu_items")
+                if url:
+                    new_urls.append(url)
+            if new_urls:
+                item.image_url = existing + new_urls
 
     try:
         async with prisma.tx() as tx:
@@ -395,6 +470,40 @@ async def create_cafe(
                         "view_type": cd.view_type,
                     }
                 }
+            if data.menu:
+                menu = data.menu
+                sections_create = []
+                for i, sec in enumerate(menu.sections or []):
+                    items_create = []
+                    for item in sec.items or []:
+                        items_create.append({
+                            "item_id": item.item_id,
+                            "name": item.name,
+                            "description": item.description,
+                            "price": item.price,
+                            "currency": item.currency,
+                            "image_url": item.image_url,
+                            "image_description": item.image_description,
+                            "dietary": PrismaJson(item.dietary) if item.dietary is not None else None,
+                            "spice_level": item.spice_level.value if item.spice_level else None,
+                            "allergens": item.allergens or [],
+                            "tags": item.tags or [],
+                        })
+                    sections_create.append({
+                        "name": sec.section_name,
+                        "source_type": sec.source_type if getattr(sec, "source_type", None) else None,
+                        "sort_order": i,
+                        "items": {"create": items_create},
+                    })
+                create_data["menu"] = {
+                    "create": {
+                        "source_type": menu.source_type,
+                        "source_version": menu.source_version,
+                        "source_url": menu.source_url,
+                        "language": menu.language if menu.language else None,
+                        "sections": {"create": sections_create},
+                    }
+                }
             created_in_tx = await tx.cafe.create(data=create_data)
             cafe_id = created_in_tx.id
             # RAG sources (create after cafe exists)
@@ -431,6 +540,7 @@ async def create_cafe(
                 "policies": True,
                 "translations": True,
                 "details": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
                 "rag_sources": {"include": {"chunks": True}},
             },
         )

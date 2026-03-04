@@ -481,45 +481,15 @@ enum VerificationStatus {
   REJECTED
 }
 
-enum VendorType {
-  COMPANY
-  INDIVIDUAL
-}
-
-model Vendor {
-  id                        String              @id @default(uuid())
-  vendor_id                 String?             @unique @db.VarChar(50)
-  name                      String
-  vendor_type               VendorType          @default(COMPANY)
-  contact_phone             String?             @db.VarChar(30)
-  whatsapp                  String?             @db.VarChar(30)
-  email                     String?             @db.VarChar(255)
-  languages_supported       String[]
-  verification_status       VerificationStatus? @default(PENDING)
-  rating_avg                Float?
-  rating_count              Int                 @default(0)
-  response_time_avg_minutes Int?
-  created_at                DateTime            @default(now())
-  updated_at                DateTime            @updatedAt
-
-  cafes Cafe[]
-
-  @@index([vendor_type])
-  @@index([verification_status])
-  @@map("vendors")
-}
-
 model Cafe {
   id       String          @id @default(uuid())
-  listing_id        String?         @unique @db.VarChar(50)
-  vendor_id         String?         // optional; when set, link to Vendor; else use inline vendor fields below
+  listing_id        String?         @unique @db.VarChar(50)      
   category          ListingCategory @default(CAFE)
   sub_category      String?         @db.VarChar(50)
   name              String
   slug              String          @unique
   status            ListingStatus   @default(ACTIVE)
 
-  // Vendor / contact (inline like Restaurant; used when vendor_id is null or in addition)
   vendor_name         String?
   contact_phone       String?
   whatsapp            String?
@@ -562,7 +532,6 @@ model Cafe {
   quality_score       Int?
   popularity_score    Int?
 
-  vendor       Vendor?           @relation(fields: [vendor_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   gallery      CafeGalleryImage[]
   details      CafeDetails?
   tags         CafeTag[]
@@ -574,7 +543,6 @@ model Cafe {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@index([vendor_id])
   @@index([category])
   @@index([status])
   @@index([province, district])
@@ -718,7 +686,7 @@ model CafeTranslation {
   language          String  @db.VarChar(10)
   name              String?
   short_description String?  @db.Text
-  long_description  String? @db.Text  // cafe-specific (Restaurant has only name, short_description)
+  long_description  String? @db.Text
   cafe              Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@unique([cafe_id, language])

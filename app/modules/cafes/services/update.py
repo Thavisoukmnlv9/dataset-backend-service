@@ -31,7 +31,6 @@ async def update_cafe(
         existing = await prisma.cafe.find_unique(
             where={"id": cafe_id},
             include={
-                "vendor": True,
                 "tags": True,
                 "hours": True,
                 "gallery": True,
@@ -272,7 +271,6 @@ async def update_cafe(
         updated = await prisma.cafe.find_unique(
             where={"id": cafe_id},
             include={
-                "vendor": True,
                 "tags": True,
                 "hours": True,
                 "gallery": True,

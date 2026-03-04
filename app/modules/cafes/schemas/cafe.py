@@ -1,4 +1,4 @@
-"""Cafe API schemas aligned with Prisma Vendor + Cafe models."""
+"""Cafe API schemas aligned with Prisma Cafe model."""
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
@@ -37,11 +37,6 @@ class VerificationStatusEnum(str, Enum):
     REJECTED = "REJECTED"
 
 
-class VendorTypeEnum(str, Enum):
-    COMPANY = "COMPANY"
-    INDIVIDUAL = "INDIVIDUAL"
-
-
 class TagTypeEnum(str, Enum):
     VIBE = "VIBE"
     THEME = "THEME"
@@ -64,23 +59,6 @@ class SpiceLevelEnum(str, Enum):
     MILD = "MILD"
     MEDIUM = "MEDIUM"
     HOT = "HOT"
-
-
-# ── Vendor (inline create) ─────────────────────────────────────────────────
-
-class VendorCreate(BaseModel):
-    """Inline vendor payload when creating a cafe without existing vendor_id."""
-    vendor_id: Optional[str] = None  # external id e.g. v_1101
-    name: str
-    vendor_type: VendorTypeEnum = VendorTypeEnum.COMPANY
-    contact_phone: Optional[str] = None
-    whatsapp: Optional[str] = None
-    email: Optional[str] = None
-    languages_supported: List[str] = Field(default_factory=list)
-    verification_status: Optional[VerificationStatusEnum] = None
-    rating_avg: Optional[float] = None
-    rating_count: int = 0
-    response_time_avg_minutes: Optional[int] = None
 
 
 # ── Nested / related ───────────────────────────────────────────────────────
@@ -202,9 +180,7 @@ class MenuIn(BaseModel):
 # ── Main cafe payload ──────────────────────────────────────────────────────
 
 class CafeCreate(BaseModel):
-    """Payload to create a cafe (like Restaurant: inline vendor or optional vendor_id)."""
-    vendor_id: Optional[str] = None
-    vendor: Optional[VendorCreate] = None
+    """Payload to create a cafe (inline vendor fields: vendor_name, contact_phone, etc.)."""
     vendor_name: Optional[str] = None
     contact_phone: Optional[str] = None
     whatsapp: Optional[str] = None
@@ -262,6 +238,21 @@ class CafeCreate(BaseModel):
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
     menu: Optional[MenuIn] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def flatten_vendor(cls, data: Any) -> Any:
+        """Accept vendor: { vendor_name, contact_phone, ... } from form and flatten to top-level."""
+        if not isinstance(data, dict) or "vendor" not in data:
+            return data
+        v = data.get("vendor")
+        if not isinstance(v, dict):
+            return data
+        out = {**data}
+        for key in ("vendor_name", "contact_phone", "whatsapp", "email", "verification_status", "languages_supported"):
+            if key in v and out.get(key) is None:
+                out[key] = v[key]
+        return out
 
     @model_validator(mode="before")
     @classmethod

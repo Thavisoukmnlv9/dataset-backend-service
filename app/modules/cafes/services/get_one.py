@@ -37,7 +37,6 @@ async def get_cafe(cafe_id: str) -> Dict[str, Any]:
         c = await prisma.cafe.find_unique(
             where={"id": cafe_id},
             include={
-                "vendor": True,
                 "tags": True,
                 "hours": True,
                 "gallery": True,

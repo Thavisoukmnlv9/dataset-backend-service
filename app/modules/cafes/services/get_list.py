@@ -20,7 +20,6 @@ def _serialize_cafe_list_item(c: Any) -> Dict[str, Any]:
     return {
         "id": c.id,
         "listing_id": getattr(c, "listing_id", None),
-        "vendor_id": getattr(c, "vendor_id", None),
         "category": c.category,
         "sub_category": getattr(c, "sub_category", None),
         "name": c.name,

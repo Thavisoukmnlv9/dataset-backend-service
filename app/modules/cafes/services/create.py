@@ -1,4 +1,4 @@
-"""Create cafe: Vendor (if inline) + Cafe + details, tags, hours, media, policies, translations, rag_sources. No Qdrant."""
+"""Create cafe: Cafe + details, tags, hours, media, policies, translations, rag_sources. No Qdrant."""
 import logging
 import re
 import uuid
@@ -94,7 +94,6 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
     return {
         "id": c.id,
         "listing_id": getattr(c, "listing_id", None),
-        "vendor_id": getattr(c, "vendor_id", None),
         "vendor_name": getattr(c, "vendor_name", None),
         "contact_phone": getattr(c, "contact_phone", None),
         "whatsapp": getattr(c, "whatsapp", None),
@@ -137,34 +136,12 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
         "last_verified_at": c.last_verified_at.isoformat() if getattr(c, "last_verified_at", None) else None,
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
-        "vendor": _serialize_vendor(c.vendor) if getattr(c, "vendor", None) else None,
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (c.tags or [])],
         "hours": _serialize_hours(c.hours) if c.hours else None,
         "policies": [_serialize_policy(p) for p in (c.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description, "long_description": getattr(t, "long_description", None)} for t in (c.translations or [])},
         "category_details": _serialize_details(c.details) if c.details else None,
         "menu": _serialize_cafe_menu(c.menu) if getattr(c, "menu", None) else None,
-    }
-
-
-def _serialize_vendor(v: Any) -> Optional[Dict[str, Any]]:
-    if not v:
-        return None
-    return {
-        "id": v.id,
-        "vendor_id": getattr(v, "vendor_id", None),
-        "name": v.name,
-        "vendor_type": v.vendor_type,
-        "contact_phone": v.contact_phone,
-        "whatsapp": v.whatsapp,
-        "email": v.email,
-        "languages_supported": v.languages_supported or [],
-        "verification_status": v.verification_status,
-        "rating_avg": v.rating_avg,
-        "rating_count": v.rating_count or 0,
-        "response_time_avg_minutes": getattr(v, "response_time_avg_minutes", None),
-        "created_at": v.created_at.isoformat() if v.created_at else None,
-        "updated_at": v.updated_at.isoformat() if v.updated_at else None,
     }
 
 
@@ -268,26 +245,7 @@ async def create_cafe(
     menu_source_file: Optional[UploadFile] = None,
     menu_item_files: Optional[Dict[Tuple[int, int], List[UploadFile]]] = None,
 ) -> Dict[str, Any]:
-    vendor_id: Optional[str] = data.vendor_id
-    if data.vendor and not vendor_id:
-        v = data.vendor
-        vendor = await prisma.vendor.create(
-            data={
-                "vendor_id": v.vendor_id,
-                "name": v.name,
-                "vendor_type": v.vendor_type.value,
-                "contact_phone": v.contact_phone,
-                "whatsapp": v.whatsapp,
-                "email": v.email,
-                "languages_supported": v.languages_supported or [],
-                "verification_status": v.verification_status.value if v.verification_status else None,
-                "rating_avg": v.rating_avg,
-                "rating_count": v.rating_count or 0,
-                "response_time_avg_minutes": v.response_time_avg_minutes,
-            },
-        )
-        vendor_id = vendor.id
-    # Allow no vendor: use inline vendor_name, contact_phone, etc. (like Restaurant)
+    """Create cafe using inline vendor fields (vendor_name, contact_phone, etc.)."""
     cover_url = await _upload_cover_image(cover_image_file)
     if cover_url:
         data.cover_image_url = cover_url
@@ -353,7 +311,6 @@ async def create_cafe(
             resolved_slug = await _resolve_slug(tx, data.slug, data.name)
             create_data: Dict[str, Any] = {
                 "listing_id": data.listing_id,
-                "vendor_id": vendor_id,
                 "vendor_name": data.vendor_name,
                 "contact_phone": data.contact_phone,
                 "whatsapp": data.whatsapp,
@@ -504,7 +461,6 @@ async def create_cafe(
         created = await prisma.cafe.find_unique(
             where={"id": cafe_id},
             include={
-                "vendor": True,
                 "tags": True,
                 "hours": True,
                 "gallery": True,

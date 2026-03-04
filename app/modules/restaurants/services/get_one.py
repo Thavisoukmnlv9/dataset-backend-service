@@ -1,19 +1,15 @@
 """Get a single restaurant by ID."""
 import logging
 from typing import Any, Dict
-
 from fastapi import HTTPException, status
-
 from app.prisma import prisma
+from app.shared.utils.responses.response import create_success_response
+from app.modules.restaurants.services.create import _serialize_restaurant
 
 logger = logging.getLogger(__name__)
 
 
 async def get_restaurant(restaurant_id: str) -> Dict[str, Any]:
-    """Get restaurant by ID."""
-    from app.shared.utils.responses.response import create_success_response
-    from app.modules.restaurants.services.create import _serialize_restaurant
-
     try:
         r = await prisma.restaurant.find_unique(
             where={"id": restaurant_id},

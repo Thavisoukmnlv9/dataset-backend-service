@@ -47,7 +47,7 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "popularity_score": r.popularity_score,
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-        "gallery": [{"url": path_to_upload_url(g.url), "description": g.description} for g in (r.gallery or [])],
+        "gallery": [{"url": path_to_upload_url(g.url), "description": g.description, "is_cover": getattr(g, "is_cover", False)} for g in (r.gallery or [])],
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
     }
 

@@ -50,18 +50,18 @@ async def update_restaurant(
                     )
         if gallery_files:
             new_gallery = []
-            for f in gallery_files:
+            for i, f in enumerate(gallery_files):
                 if not f or not f.filename:
                     continue
                 result = await storage_service.upload_file(f, "restaurants/gallery")
                 if result.success and result.data:
                     path = _to_stored_path(result.data.get("object_name"))
                     if path:
-                        new_gallery.append({"url": path, "description": None})
+                        new_gallery.append({"url": path, "description": None, "is_cover": i == 0})
             if new_gallery:
                 await prisma.restaurantgalleryimage.delete_many(where={"restaurant_id": restaurant_id})
                 await prisma.restaurantgalleryimage.create_many(
-                    data=[{"restaurant_id": restaurant_id, "url": g["url"], "description": g.get("description")} for g in new_gallery]
+                    data=[{"restaurant_id": restaurant_id, "url": g["url"], "description": g.get("description"), "is_cover": g.get("is_cover", False)} for g in new_gallery]
                 )
 
         # Build update payload (only set provided fields)

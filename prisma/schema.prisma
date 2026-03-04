@@ -274,6 +274,7 @@ model RestaurantGalleryImage {
   restaurant_id String
   url           String
   description   String?
+  is_cover      Boolean @default(false)
   restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])

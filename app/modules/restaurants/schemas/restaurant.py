@@ -64,6 +64,7 @@ class SpiceLevelEnum(str, Enum):
 class GalleryImageIn(BaseModel):
     url: Optional[str] = None
     description: Optional[str] = None
+    is_cover: bool = False
     url_file: Optional[Any] = None  # multipart placeholder; send file as gallery_0, gallery_1, ...
 
 

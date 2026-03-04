@@ -510,16 +510,24 @@ model Vendor {
 }
 
 model Cafe {
-  id                String          @id @default(uuid())
+  id       String          @id @default(uuid())
   listing_id        String?         @unique @db.VarChar(50)
-  vendor_id         String
+  vendor_id         String?         // optional; when set, link to Vendor; else use inline vendor fields below
   category          ListingCategory @default(CAFE)
   sub_category      String?         @db.VarChar(50)
   name              String
   slug              String          @unique
+  status            ListingStatus   @default(ACTIVE)
+
+  // Vendor / contact (inline like Restaurant; used when vendor_id is null or in addition)
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status VerificationStatus?
+
   short_description String?         @db.Text
   long_description  String?         @db.Text
-  status            ListingStatus   @default(ACTIVE)
 
   country      String
   province     String
@@ -534,35 +542,33 @@ model Cafe {
   min_price  Int?
   max_price  Int?
 
-  booking_supported           Boolean @default(false)
-  walk_in_supported           Boolean @default(true)
-  instant_confirmation        Boolean @default(false)
-  cancellation_policy_summary String? @db.Text
+  booking_supported Boolean @default(false)
+  walk_in_supported Boolean @default(true)
 
-  child_friendly         Boolean @default(false)
-  pet_friendly           Boolean @default(false)
-  accessibility_features Json?
+  // Cafe-specific
+  instant_confirmation        Boolean  @default(false)
+  cancellation_policy_summary String?   @db.Text
+  child_friendly              Boolean  @default(false)
+  pet_friendly                Boolean  @default(false)
+  accessibility_features      Json?
+  review_summary_text         String?   @db.Text
+  last_verified_at            DateTime?
 
   languages_supported String[]
   cover_image_url     String?  @db.Text
-  gallery_urls        String[]
-
   rating_avg          Float?
-  rating_count        Int       @default(0)
-  review_summary_text String?   @db.Text
+  rating_count        Int     @default(0)
   trust_score         Int?
   quality_score       Int?
   popularity_score    Int?
-  last_verified_at    DateTime?
 
-  vendor       Vendor            @relation(fields: [vendor_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  vendor       Vendor?           @relation(fields: [vendor_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  gallery      CafeGalleryImage[]
   details      CafeDetails?
   tags         CafeTag[]
   hours        CafeHours?
-  media        CafeMedia[]
   policies     CafePolicy[]
   translations CafeTranslation[]
-  rag_sources  RagSource[]
   menu         CafeMenu?
 
   created_at DateTime @default(now())
@@ -576,36 +582,55 @@ model Cafe {
   @@map("cafes")
 }
 
-model CafeDetails {
-  id                      String   @id @default(uuid())
-  cafe_id                 String   @unique
-  cafe_type               String?  @db.VarChar(50)
-  coffee_styles           String[] 
-  tea_options             Boolean  @default(false)
-  dessert_available       Boolean  @default(false)
-  avg_spend_per_person    Int?
-  wifi_quality            String?  @db.VarChar(30)
-  power_outlets_available Boolean  @default(false)
-  work_friendly           Boolean  @default(false)
-  quiet_level             String?  @db.VarChar(30)
-  stay_duration_friendly  Boolean  @default(false)
-  air_conditioning        Boolean  @default(false)
-  smoking_area            Boolean?
-  opening_early           Boolean  @default(false)
-  late_open               Boolean  @default(false)
-  instagrammable_score    Int?
-  view_type               String?  @db.VarChar(30)
-  cafe                    Cafe     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+model CafeGalleryImage {
+  id         String  @id @default(uuid())
+  cafe_id    String
+  url        String  @db.Text
+  description String?
+  is_cover   Boolean  @default(false)
+  cafe       Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
+  @@index([cafe_id])
+  @@map("cafe_gallery_images")
+}
+
+model CafeDetails {
+  id                     String     @id @default(uuid())
+  cafe_id                String     @unique
+  cuisine_types          String[]
+  meal_types            String[]
+  avg_spend_per_person   Int?
+  dietary_options        Json?
+  reservation_supported  Boolean    @default(false)
+  reservation_required   Boolean    @default(false)
+  seating_capacity       Int?
+  indoor_seating         Boolean    @default(false)
+  outdoor_seating        Boolean    @default(false)
+  takeaway_available     Boolean    @default(false)
+  delivery_available     Boolean    @default(false)
+  payment_methods        String[]
+  signature_dishes       String[]
+  alcohol_served         Boolean    @default(false)
+  parking_available      Boolean    @default(false)
+  wifi_available         Boolean    @default(false)
+  noise_level            String?
+  suitable_for          String[]
+  best_time_to_visit     String?
+  wait_time_peak_minutes Int?
+  tea_options            String[]
+  coffee_styles          String[]
+  cafe                   Cafe       @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@index([cafe_id])
   @@map("cafe_details")
 }
 
 model CafeTag {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   cafe_id   String
   tag_type  TagType
-  tag_value String  @db.VarChar(100)
-  cafe      Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  tag_value String
+  cafe      Cafe     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@index([cafe_id])
   @@index([tag_type, tag_value])
@@ -617,30 +642,70 @@ model CafeHours {
   cafe_id         String  @unique
   timezone        String? @db.VarChar(50)
   weekly_schedule Json
+  special_notes   Json?   // array of strings, like RestaurantHours
   cafe            Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@map("cafe_hours")
 }
 
-model CafeMedia {
-  id         String  @id @default(uuid())
-  cafe_id    String
-  media_type String  @db.VarChar(20)
-  url        String  @db.Text
-  caption    String? @db.Text
-  cafe       Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+model CafeMenu {
+  id            String  @id @default(uuid())
+  cafe_id       String  @unique
+  source_type   String
+  source_version String?
+  source_url    String?
+  language      String?
+  extracted_at  DateTime?
+  metadata      Json?
+
+  cafe     Cafe             @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  sections CafeMenuSection[]
 
   @@index([cafe_id])
-  @@map("cafe_media")
+  @@map("cafe_menus")
+}
+
+model CafeMenuSection {
+  id          String       @id @default(uuid())
+  menu_id     String
+  name        String
+  source_type String?
+  sort_order  Int          @default(0)
+  menu        CafeMenu     @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       CafeMenuItem[]
+
+  @@index([menu_id])
+  @@map("cafe_menu_sections")
+}
+
+model CafeMenuItem {
+  id          String         @id @default(uuid())
+  section_id  String
+  item_id     String?
+
+  name              String
+  description       String?
+  price             Int?
+  currency          String?
+  image_url         String[]
+  image_description String?
+  dietary           Json?
+  spice_level       SpiceLevel?
+  allergens         String[]
+  tags              String[]
+  section           CafeMenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@index([item_id])
+  @@map("cafe_menu_items")
 }
 
 model CafePolicy {
-  id                String     @id @default(uuid())
-  cafe_id           String
-  policy_type       PolicyType
-  policy_text       String     @db.Text
-  structured_policy Json?
-  cafe              Cafe       @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  id          String     @id @default(uuid())
+  cafe_id     String
+  policy_type PolicyType
+  policy_text String     @db.Text
+  cafe        Cafe       @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@index([cafe_id])
   @@index([policy_type])
@@ -652,91 +717,11 @@ model CafeTranslation {
   cafe_id           String
   language          String  @db.VarChar(10)
   name              String?
-  short_description String? @db.Text
-  long_description  String? @db.Text
+  short_description String?  @db.Text
+  long_description  String? @db.Text  // cafe-specific (Restaurant has only name, short_description)
   cafe              Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@unique([cafe_id, language])
   @@index([language])
   @@map("cafe_translations")
-}
-
-model RagSource {
-  id          String     @id @default(uuid())
-  document_id String?    @db.VarChar(50)
-  cafe_id     String
-  source_type String     @db.VarChar(50)
-  language    String     @db.VarChar(10)
-  cafe        Cafe       @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
-  chunks      RagChunk[]
-
-  @@index([cafe_id])
-  @@index([document_id])
-  @@index([source_type, language])
-  @@map("rag_sources")
-}
-
-model RagChunk {
-  id            String    @id @default(uuid())
-  rag_source_id String
-  chunk_id      String?   @db.VarChar(50)
-  chunk_type    String    @db.VarChar(50)
-  chunk_text    String    @db.Text
-  rag_source    RagSource @relation(fields: [rag_source_id], references: [id], onDelete: Cascade)
-
-  @@index([rag_source_id])
-  @@index([chunk_type])
-  @@map("rag_chunks")
-}
-
-model CafeMenu {
-  id         String  @id @default(uuid())
-  cafe_id    String  @unique
-  source_type    String
-  source_version String?
-  source_url     String?
-  language       String?
-  extracted_at   DateTime?
-  metadata       Json?
-
-  cafe      Cafe             @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
-  sections  CafeMenuSection[]
-
-  @@index([cafe_id])
-  @@map("cafe_menus")
-}
-
-model CafeMenuSection {
-  id          String      @id @default(uuid())
-  menu_id     String
-  name        String
-  source_type String?
-  sort_order  Int         @default(0)
-  menu        CafeMenu    @relation(fields: [menu_id], references: [id], onDelete: Cascade)
-  items       CafeMenuItem[]
-
-  @@index([menu_id])
-  @@map("cafe_menu_sections")
-}
-
-model CafeMenuItem {
-  id         String  @id @default(uuid())
-  section_id String
-  item_id    String?
-
-  name               String
-  description        String?
-  price              Int?
-  currency           String?
-  image_url          String[]
-  image_description  String?
-  dietary            Json?
-  spice_level        SpiceLevel?
-  allergens          String[]
-  tags               String[]
-  section            CafeMenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
-
-  @@index([section_id])
-  @@index([item_id])
-  @@map("cafe_menu_items")
 }

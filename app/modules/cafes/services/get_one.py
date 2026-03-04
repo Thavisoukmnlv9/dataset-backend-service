@@ -19,12 +19,11 @@ async def get_cafe(cafe_id: str) -> Dict[str, Any]:
                 "vendor": True,
                 "tags": True,
                 "hours": True,
-                "media": True,
+                "gallery": True,
                 "policies": True,
                 "translations": True,
                 "details": True,
                 "menu": {"include": {"sections": {"include": {"items": True}}}},
-                "rag_sources": {"include": {"chunks": True}},
             },
         )
         if not c:

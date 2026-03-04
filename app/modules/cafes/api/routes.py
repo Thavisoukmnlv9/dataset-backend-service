@@ -21,7 +21,7 @@ router = APIRouter(prefix="/cafes", tags=["Cafes"])
 
 _FORM_JSON_KEYS = frozenset({
     "vendor", "languages_supported", "gallery_urls", "tags", "hours", "weekly_schedule",
-    "media", "policies", "translations", "category_details", "rag_sources",
+    "policies", "translations", "category_details",
     "accessibility_features", "menu",
 })
 

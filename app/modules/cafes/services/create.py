@@ -72,17 +72,18 @@ async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
     return None
 
 
-async def _upload_gallery_files(files: List[UploadFile]) -> List[str]:
-    urls: List[str] = []
-    for f in files or []:
+async def _upload_gallery_files(files: List[UploadFile]) -> List[Dict[str, Any]]:
+    """Upload gallery files and return list of {url, description?, is_cover} like Restaurant."""
+    result_list: List[Dict[str, Any]] = []
+    for i, f in enumerate(files or []):
         if not f or not getattr(f, "filename", None):
             continue
         result = await storage_service.upload_file(f, "cafes/gallery")
         if result.success and result.data:
             path = _to_stored_path(result.data.get("object_name"))
             if path:
-                urls.append(path)
-    return urls
+                result_list.append({"url": path, "description": None, "is_cover": i == 0})
+    return result_list
 
 
 def _serialize_cafe(c: Any) -> Dict[str, Any]:
@@ -92,7 +93,12 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
     return {
         "id": c.id,
         "listing_id": getattr(c, "listing_id", None),
-        "vendor_id": c.vendor_id,
+        "vendor_id": getattr(c, "vendor_id", None),
+        "vendor_name": getattr(c, "vendor_name", None),
+        "contact_phone": getattr(c, "contact_phone", None),
+        "whatsapp": getattr(c, "whatsapp", None),
+        "email": getattr(c, "email", None),
+        "verification_status": getattr(c, "verification_status", None),
         "category": c.category,
         "sub_category": getattr(c, "sub_category", None),
         "name": c.name,
@@ -120,7 +126,7 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
         "accessibility_features": getattr(c, "accessibility_features", None),
         "languages_supported": c.languages_supported or [],
         "cover_image_url": path_to_upload_url(c.cover_image_url),
-        "gallery_urls": list(c.gallery_urls) if getattr(c, "gallery_urls", None) else [],
+        "gallery": [{"url": path_to_upload_url(g.url), "description": getattr(g, "description", None), "is_cover": getattr(g, "is_cover", False)} for g in (c.gallery or [])],
         "rating_avg": c.rating_avg,
         "rating_count": c.rating_count or 0,
         "review_summary_text": getattr(c, "review_summary_text", None),
@@ -133,11 +139,9 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
         "vendor": _serialize_vendor(c.vendor) if getattr(c, "vendor", None) else None,
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (c.tags or [])],
         "hours": _serialize_hours(c.hours) if c.hours else None,
-        "media": [_serialize_media(m) for m in (c.media or [])],
         "policies": [_serialize_policy(p) for p in (c.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description, "long_description": getattr(t, "long_description", None)} for t in (c.translations or [])},
         "category_details": _serialize_details(c.details) if c.details else None,
-        "rag_sources": [_serialize_rag_source(rs) for rs in (c.rag_sources or [])],
         "menu": _serialize_cafe_menu(c.menu) if getattr(c, "menu", None) else None,
     }
 
@@ -169,19 +173,7 @@ def _serialize_hours(h: Any) -> Optional[Dict[str, Any]]:
     return {
         "timezone": h.timezone,
         "weekly_schedule": h.weekly_schedule,
-    }
-
-
-def _serialize_media(m: Any) -> Dict[str, Any]:
-    if not m:
-        return {}
-    return {
-        "media_type": m.media_type,
-        "url": path_to_upload_url(m.url),
-        "caption": m.caption,
-        "sort_order": m.sort_order,
-        "source": m.source,
-        "is_verified": getattr(m, "is_verified", False),
+        "special_notes": getattr(h, "special_notes", None),
     }
 
 
@@ -191,7 +183,6 @@ def _serialize_policy(p: Any) -> Dict[str, Any]:
     return {
         "policy_type": p.policy_type,
         "policy_text": p.policy_text,
-        "structured_policy": getattr(p, "structured_policy", None),
     }
 
 
@@ -199,43 +190,28 @@ def _serialize_details(d: Any) -> Optional[Dict[str, Any]]:
     if not d:
         return None
     return {
-        "cafe_type": d.cafe_type,
-        "coffee_styles": d.coffee_styles or [],
-        "tea_options": d.tea_options,
-        "dessert_available": d.dessert_available,
+        "cuisine_types": d.cuisine_types or [],
+        "meal_types": d.meal_types or [],
         "avg_spend_per_person": d.avg_spend_per_person,
-        "wifi_quality": d.wifi_quality,
-        "power_outlets_available": d.power_outlets_available,
-        "work_friendly": d.work_friendly,
-        "quiet_level": d.quiet_level,
-        "stay_duration_friendly": d.stay_duration_friendly,
-        "air_conditioning": d.air_conditioning,
-        "smoking_area": getattr(d, "smoking_area", None),
-        "opening_early": d.opening_early,
-        "late_open": d.late_open,
-        "instagrammable_score": getattr(d, "instagrammable_score", None),
-        "view_type": d.view_type,
-    }
-
-
-def _serialize_rag_chunk(ch: Any) -> Dict[str, Any]:
-    if not ch:
-        return {}
-    return {
-        "chunk_id": getattr(ch, "chunk_id", None),
-        "chunk_type": ch.chunk_type,
-        "chunk_text": ch.chunk_text,
-    }
-
-
-def _serialize_rag_source(rs: Any) -> Dict[str, Any]:
-    if not rs:
-        return {}
-    return {
-        "document_id": getattr(rs, "document_id", None),
-        "source_type": rs.source_type,
-        "language": rs.language,
-        "chunks": [_serialize_rag_chunk(ch) for ch in (getattr(rs, "chunks", None) or [])],
+        "dietary_options": d.dietary_options,
+        "reservation_supported": d.reservation_supported,
+        "reservation_required": d.reservation_required,
+        "seating_capacity": d.seating_capacity,
+        "indoor_seating": d.indoor_seating,
+        "outdoor_seating": d.outdoor_seating,
+        "takeaway_available": d.takeaway_available,
+        "delivery_available": d.delivery_available,
+        "payment_methods": d.payment_methods or [],
+        "signature_dishes": d.signature_dishes or [],
+        "alcohol_served": getattr(d, "alcohol_served", False),
+        "parking_available": getattr(d, "parking_available", False),
+        "wifi_available": getattr(d, "wifi_available", False),
+        "noise_level": getattr(d, "noise_level", None),
+        "suitable_for": getattr(d, "suitable_for", None) or [],
+        "best_time_to_visit": getattr(d, "best_time_to_visit", None),
+        "wait_time_peak_minutes": getattr(d, "wait_time_peak_minutes", None),
+        "tea_options": getattr(d, "tea_options", None) or [],
+        "coffee_styles": getattr(d, "coffee_styles", None) or [],
     }
 
 
@@ -293,7 +269,6 @@ async def create_cafe(
 ) -> Dict[str, Any]:
     vendor_id: Optional[str] = data.vendor_id
     if data.vendor and not vendor_id:
-        # Create vendor first
         v = data.vendor
         vendor = await prisma.vendor.create(
             data={
@@ -311,12 +286,7 @@ async def create_cafe(
             },
         )
         vendor_id = vendor.id
-    if not vendor_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Either vendor_id or vendor (inline vendor) is required",
-        )
-
+    # Allow no vendor: use inline vendor_name, contact_phone, etc. (like Restaurant)
     cover_url = await _upload_cover_image(cover_image_file)
     if cover_url:
         data.cover_image_url = cover_url
@@ -363,6 +333,11 @@ async def create_cafe(
             create_data: Dict[str, Any] = {
                 "listing_id": data.listing_id,
                 "vendor_id": vendor_id,
+                "vendor_name": data.vendor_name,
+                "contact_phone": data.contact_phone,
+                "whatsapp": data.whatsapp,
+                "email": data.email,
+                "verification_status": data.verification_status.value if data.verification_status else None,
                 "category": data.category.value,
                 "sub_category": data.sub_category,
                 "name": data.name,
@@ -390,7 +365,6 @@ async def create_cafe(
                 "accessibility_features": PrismaJson(data.accessibility_features) if data.accessibility_features is not None else None,
                 "languages_supported": [c if isinstance(c, str) else str(c) for c in (data.languages_supported or [])],
                 "cover_image_url": data.cover_image_url,
-                "gallery_urls": data.gallery_urls or [],
                 "rating_avg": data.rating_avg,
                 "rating_count": data.rating_count or 0,
                 "review_summary_text": data.review_summary_text,
@@ -399,41 +373,34 @@ async def create_cafe(
                 "popularity_score": data.popularity_score,
                 "last_verified_at": data.last_verified_at,
             }
+            if data.gallery_urls:
+                gallery_list = []
+                for g in data.gallery_urls:
+                    if isinstance(g, dict):
+                        url = g.get("url") or ""
+                        desc = g.get("description")
+                        is_cover = g.get("is_cover", False)
+                    else:
+                        url = getattr(g, "url", None) or ""
+                        desc = getattr(g, "description", None)
+                        is_cover = getattr(g, "is_cover", False)
+                    gallery_list.append({"url": url, "description": desc, "is_cover": is_cover})
+                create_data["gallery"] = {"create": gallery_list}
             if data.tags:
                 create_data["tags"] = {
                     "create": [{"tag_type": t.tag_type.value, "tag_value": t.tag_value} for t in data.tags]
                 }
             if data.hours and getattr(data.hours, "weekly_schedule", None):
-                create_data["hours"] = {
-                    "create": {
-                        "timezone": getattr(data.hours, "timezone", None),
-                        "weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours)),
-                    }
+                hours_payload: Dict[str, Any] = {
+                    "timezone": getattr(data.hours, "timezone", None),
+                    "weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours)),
                 }
-            if data.media:
-                create_data["media"] = {
-                    "create": [
-                        {
-                            "media_type": m.media_type,
-                            "url": m.url,
-                            "caption": m.caption,
-                            "sort_order": m.sort_order,
-                            "source": m.source,
-                            "is_verified": m.is_verified,
-                        }
-                        for m in data.media
-                    ]
-                }
+                if getattr(data.hours, "special_notes", None) is not None:
+                    hours_payload["special_notes"] = PrismaJson(data.hours.special_notes)
+                create_data["hours"] = {"create": hours_payload}
             if data.policies:
                 create_data["policies"] = {
-                    "create": [
-                        {
-                            "policy_type": p.policy_type.value,
-                            "policy_text": p.policy_text,
-                            "structured_policy": PrismaJson(p.structured_policy) if p.structured_policy is not None else None,
-                        }
-                        for p in data.policies
-                    ]
+                    "create": [{"policy_type": p.policy_type.value, "policy_text": p.policy_text} for p in data.policies]
                 }
             if data.translations:
                 trans_list = []
@@ -452,22 +419,28 @@ async def create_cafe(
                 cd = data.category_details
                 create_data["details"] = {
                     "create": {
-                        "cafe_type": cd.cafe_type,
-                        "coffee_styles": cd.coffee_styles or [],
-                        "tea_options": cd.tea_options,
-                        "dessert_available": cd.dessert_available,
+                        "cuisine_types": cd.cuisine_types or [],
+                        "meal_types": cd.meal_types or [],
                         "avg_spend_per_person": cd.avg_spend_per_person,
-                        "wifi_quality": cd.wifi_quality,
-                        "power_outlets_available": cd.power_outlets_available,
-                        "work_friendly": cd.work_friendly,
-                        "quiet_level": cd.quiet_level,
-                        "stay_duration_friendly": cd.stay_duration_friendly,
-                        "air_conditioning": cd.air_conditioning,
-                        "smoking_area": cd.smoking_area,
-                        "opening_early": cd.opening_early,
-                        "late_open": cd.late_open,
-                        "instagrammable_score": cd.instagrammable_score,
-                        "view_type": cd.view_type,
+                        "dietary_options": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
+                        "reservation_supported": cd.reservation_supported,
+                        "reservation_required": cd.reservation_required,
+                        "seating_capacity": cd.seating_capacity,
+                        "indoor_seating": cd.indoor_seating,
+                        "outdoor_seating": cd.outdoor_seating,
+                        "takeaway_available": cd.takeaway_available,
+                        "delivery_available": cd.delivery_available,
+                        "payment_methods": cd.payment_methods or [],
+                        "signature_dishes": cd.signature_dishes or [],
+                        "alcohol_served": cd.alcohol_served,
+                        "parking_available": cd.parking_available,
+                        "wifi_available": cd.wifi_available,
+                        "noise_level": cd.noise_level,
+                        "suitable_for": cd.suitable_for or [],
+                        "best_time_to_visit": cd.best_time_to_visit,
+                        "wait_time_peak_minutes": cd.wait_time_peak_minutes,
+                        "tea_options": cd.tea_options or [],
+                        "coffee_styles": cd.coffee_styles or [],
                     }
                 }
             if data.menu:
@@ -506,29 +479,6 @@ async def create_cafe(
                 }
             created_in_tx = await tx.cafe.create(data=create_data)
             cafe_id = created_in_tx.id
-            # RAG sources (create after cafe exists)
-            if data.rag_sources:
-                for rs in data.rag_sources:
-                    rag = await tx.ragsource.create(
-                        data={
-                            "document_id": rs.document_id,
-                            "cafe_id": cafe_id,
-                            "source_type": rs.source_type,
-                            "language": rs.language,
-                        },
-                    )
-                    if rs.chunks:
-                        await tx.ragchunk.create_many(
-                            data=[
-                                {
-                                    "rag_source_id": rag.id,
-                                    "chunk_id": ch.chunk_id,
-                                    "chunk_type": ch.chunk_type,
-                                    "chunk_text": ch.chunk_text,
-                                }
-                                for ch in rs.chunks
-                            ]
-                        )
 
         created = await prisma.cafe.find_unique(
             where={"id": cafe_id},
@@ -536,12 +486,11 @@ async def create_cafe(
                 "vendor": True,
                 "tags": True,
                 "hours": True,
-                "media": True,
+                "gallery": True,
                 "policies": True,
                 "translations": True,
                 "details": True,
                 "menu": {"include": {"sections": {"include": {"items": True}}}},
-                "rag_sources": {"include": {"chunks": True}},
             },
         )
         full_payload = _serialize_cafe(created) if created else {"id": cafe_id}

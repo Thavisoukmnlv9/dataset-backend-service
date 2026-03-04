@@ -99,21 +99,19 @@ class WeeklyDay(BaseModel):
 class HoursIn(BaseModel):
     timezone: Optional[str] = None
     weekly_schedule: Dict[str, WeeklyDay]
+    special_notes: Optional[List[str]] = None  # like RestaurantHours
 
 
-class MediaIn(BaseModel):
-    media_type: str = "image"
-    url: str
-    caption: Optional[str] = None
-    sort_order: int = 0
-    source: Optional[str] = None
-    is_verified: bool = False
+class GalleryImageIn(BaseModel):
+    """Single gallery image (like Restaurant gallery)."""
+    url: Optional[str] = None
+    description: Optional[str] = None
+    is_cover: bool = False
 
 
 class PolicyIn(BaseModel):
     policy_type: PolicyTypeEnum
     policy_text: str
-    structured_policy: Optional[Dict[str, Any]] = None
 
 
 class TranslationIn(BaseModel):
@@ -122,37 +120,30 @@ class TranslationIn(BaseModel):
     long_description: Optional[str] = None
 
 
-class RagChunkIn(BaseModel):
-    chunk_id: Optional[str] = None
-    chunk_type: str
-    chunk_text: str
-
-
-class RagSourceIn(BaseModel):
-    document_id: Optional[str] = None
-    source_type: str = "listing_profile"
-    language: str
-    chunks: List[RagChunkIn] = Field(default_factory=list)
-
-
 class CafeDetailsIn(BaseModel):
-    """Cafe-specific category_details."""
-    cafe_type: Optional[str] = None
-    coffee_styles: List[str] = Field(default_factory=list)
-    tea_options: bool = False
-    dessert_available: bool = False
+    """Cafe category_details: same shape as Restaurant details + tea_options, coffee_styles."""
+    cuisine_types: List[str] = Field(default_factory=list)
+    meal_types: List[str] = Field(default_factory=list)
     avg_spend_per_person: Optional[int] = None
-    wifi_quality: Optional[str] = None
-    power_outlets_available: bool = False
-    work_friendly: bool = False
-    quiet_level: Optional[str] = None
-    stay_duration_friendly: bool = False
-    air_conditioning: bool = False
-    smoking_area: Optional[bool] = None
-    opening_early: bool = False
-    late_open: bool = False
-    instagrammable_score: Optional[int] = None
-    view_type: Optional[str] = None
+    dietary_options: Optional[Dict[str, Any]] = None
+    reservation_supported: bool = False
+    reservation_required: bool = False
+    seating_capacity: Optional[int] = None
+    indoor_seating: bool = False
+    outdoor_seating: bool = False
+    takeaway_available: bool = False
+    delivery_available: bool = False
+    payment_methods: List[str] = Field(default_factory=list)
+    signature_dishes: List[str] = Field(default_factory=list)
+    alcohol_served: bool = False
+    parking_available: bool = False
+    wifi_available: bool = False
+    noise_level: Optional[str] = None
+    suitable_for: List[str] = Field(default_factory=list)
+    best_time_to_visit: Optional[str] = None
+    wait_time_peak_minutes: Optional[int] = None
+    tea_options: List[str] = Field(default_factory=list)
+    coffee_styles: List[str] = Field(default_factory=list)
 
 
 # ── Menu (same structure as restaurant) ─────────────────────────────────────
@@ -203,12 +194,16 @@ class MenuIn(BaseModel):
 # ── Main cafe payload ──────────────────────────────────────────────────────
 
 class CafeCreate(BaseModel):
-    """Payload to create a cafe (vendor_id or inline vendor)."""
-    # Vendor: either existing id or inline vendor to create
+    """Payload to create a cafe (like Restaurant: inline vendor or optional vendor_id)."""
     vendor_id: Optional[str] = None
     vendor: Optional[VendorCreate] = None
+    vendor_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    verification_status: Optional[VerificationStatusEnum] = None
 
-    listing_id: Optional[str] = None  # external e.g. l_cafe_3001
+    listing_id: Optional[str] = None
     category: ListingCategoryEnum = ListingCategoryEnum.CAFE
     sub_category: Optional[str] = None
     name: str
@@ -241,7 +236,7 @@ class CafeCreate(BaseModel):
 
     languages_supported: List[str] = Field(default_factory=list)
     cover_image_url: Optional[str] = None
-    gallery_urls: List[str] = Field(default_factory=list)
+    gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
 
     rating_avg: Optional[float] = None
     rating_count: int = 0
@@ -253,11 +248,9 @@ class CafeCreate(BaseModel):
 
     tags: List[Union[TagIn, dict]] = Field(default_factory=list)
     hours: Optional[HoursIn] = None
-    media: List[MediaIn] = Field(default_factory=list)
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
-    rag_sources: Optional[List[RagSourceIn]] = None
     menu: Optional[MenuIn] = None
 
     @model_validator(mode="after")
@@ -281,6 +274,11 @@ class CafeUpdate(BaseModel):
     sub_category: Optional[str] = None
     short_description: Optional[str] = None
     long_description: Optional[str] = None
+    vendor_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    verification_status: Optional[VerificationStatusEnum] = None
     country: Optional[str] = None
     province: Optional[str] = None
     district: Optional[str] = None
@@ -301,7 +299,7 @@ class CafeUpdate(BaseModel):
     accessibility_features: Optional[Dict[str, Any]] = None
     languages_supported: Optional[List[str]] = None
     cover_image_url: Optional[str] = None
-    gallery_urls: Optional[List[str]] = None
+    gallery_urls: Optional[List[GalleryImageIn]] = None
     rating_avg: Optional[float] = None
     rating_count: Optional[int] = None
     review_summary_text: Optional[str] = None
@@ -311,11 +309,9 @@ class CafeUpdate(BaseModel):
     last_verified_at: Optional[datetime] = None
     tags: Optional[List[TagIn]] = None
     hours: Optional[HoursIn] = None
-    media: Optional[List[MediaIn]] = None
     policies: Optional[List[PolicyIn]] = None
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
-    rag_sources: Optional[List[RagSourceIn]] = None
     menu: Optional[MenuIn] = None
 
 

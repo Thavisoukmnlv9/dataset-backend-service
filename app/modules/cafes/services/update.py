@@ -34,12 +34,11 @@ async def update_cafe(
                 "vendor": True,
                 "tags": True,
                 "hours": True,
-                "media": True,
+                "gallery": True,
                 "policies": True,
                 "translations": True,
                 "details": True,
                 "menu": True,
-                "rag_sources": {"include": {"chunks": True}},
             },
         )
         if not existing:
@@ -52,17 +51,11 @@ async def update_cafe(
                 if path:
                     data.cover_image_url = path
         if gallery_files:
-            new_urls: List[str] = []
-            for f in gallery_files:
-                if not f or not getattr(f, "filename", None):
-                    continue
-                result = await storage_service.upload_file(f, "cafes/gallery")
-                if result.success and result.data:
-                    path = _to_stored_path(result.data.get("object_name"))
-                    if path:
-                        new_urls.append(path)
-            if new_urls:
-                data.gallery_urls = list(existing.gallery_urls or []) + new_urls
+            from app.modules.cafes.services.create import _upload_gallery_files
+            gallery_uploaded = await _upload_gallery_files(gallery_files)
+            if gallery_uploaded:
+                existing_gallery = [{"url": g.url, "description": getattr(g, "description", None), "is_cover": getattr(g, "is_cover", False)} for g in (existing.gallery or [])]
+                data.gallery_urls = existing_gallery + gallery_uploaded
         if menu_source_file and getattr(menu_source_file, "filename", None) and getattr(existing, "menu", None) and existing.menu:
             result = await storage_service.upload_file(menu_source_file, "cafes/menus", auto_resize=False)
             if result.success and result.data:
@@ -81,6 +74,16 @@ async def update_cafe(
             if slug_exists:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Slug already in use")
             update_payload["slug"] = data.slug
+        if data.vendor_name is not None:
+            update_payload["vendor_name"] = data.vendor_name
+        if data.contact_phone is not None:
+            update_payload["contact_phone"] = data.contact_phone
+        if data.whatsapp is not None:
+            update_payload["whatsapp"] = data.whatsapp
+        if data.email is not None:
+            update_payload["email"] = data.email
+        if data.verification_status is not None:
+            update_payload["verification_status"] = data.verification_status.value
         if data.status is not None:
             update_payload["status"] = data.status.value
         if data.sub_category is not None:
@@ -130,7 +133,19 @@ async def update_cafe(
         if data.cover_image_url is not None:
             update_payload["cover_image_url"] = data.cover_image_url
         if data.gallery_urls is not None:
-            update_payload["gallery_urls"] = data.gallery_urls
+            await prisma.cafegalleryimage.delete_many(where={"cafe_id": cafe_id})
+            if data.gallery_urls:
+                await prisma.cafegalleryimage.create_many(
+                    data=[
+                        {
+                            "cafe_id": cafe_id,
+                            "url": g.get("url", "") if isinstance(g, dict) else (getattr(g, "url", None) or ""),
+                            "description": g.get("description") if isinstance(g, dict) else getattr(g, "description", None),
+                            "is_cover": g.get("is_cover", False) if isinstance(g, dict) else getattr(g, "is_cover", False),
+                        }
+                        for g in data.gallery_urls
+                    ]
+                )
         if data.rating_avg is not None:
             update_payload["rating_avg"] = data.rating_avg
         if data.rating_count is not None:
@@ -159,40 +174,17 @@ async def update_cafe(
             hours_payload: Dict[str, Any] = {"weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}
             if getattr(data.hours, "timezone", None):
                 hours_payload["timezone"] = data.hours.timezone
+            if getattr(data.hours, "special_notes", None) is not None:
+                hours_payload["special_notes"] = PrismaJson(data.hours.special_notes)
             if existing.hours:
                 await prisma.cafehours.update(where={"id": existing.hours.id}, data=hours_payload)
             else:
                 await prisma.cafehours.create(data={"cafe_id": cafe_id, **hours_payload})
-        if data.media is not None:
-            await prisma.cafemedia.delete_many(where={"cafe_id": cafe_id})
-            if data.media:
-                await prisma.cafemedia.create_many(
-                    data=[
-                        {
-                            "cafe_id": cafe_id,
-                            "media_type": m.media_type,
-                            "url": m.url,
-                            "caption": m.caption,
-                            "sort_order": m.sort_order,
-                            "source": m.source,
-                            "is_verified": m.is_verified,
-                        }
-                        for m in data.media
-                    ]
-                )
         if data.policies is not None:
             await prisma.cafepolicy.delete_many(where={"cafe_id": cafe_id})
             if data.policies:
                 await prisma.cafepolicy.create_many(
-                    data=[
-                        {
-                            "cafe_id": cafe_id,
-                            "policy_type": p.policy_type.value,
-                            "policy_text": p.policy_text,
-                            "structured_policy": PrismaJson(p.structured_policy) if p.structured_policy is not None else None,
-                        }
-                        for p in data.policies
-                    ]
+                    data=[{"cafe_id": cafe_id, "policy_type": p.policy_type.value, "policy_text": p.policy_text} for p in data.policies]
                 )
         if data.translations is not None:
             await prisma.cafetranslation.delete_many(where={"cafe_id": cafe_id})
@@ -211,50 +203,33 @@ async def update_cafe(
         if data.category_details is not None:
             cd = data.category_details
             details_payload = {
-                "cafe_type": cd.cafe_type,
-                "coffee_styles": cd.coffee_styles or [],
-                "tea_options": cd.tea_options,
-                "dessert_available": cd.dessert_available,
+                "cuisine_types": cd.cuisine_types or [],
+                "meal_types": cd.meal_types or [],
                 "avg_spend_per_person": cd.avg_spend_per_person,
-                "wifi_quality": cd.wifi_quality,
-                "power_outlets_available": cd.power_outlets_available,
-                "work_friendly": cd.work_friendly,
-                "quiet_level": cd.quiet_level,
-                "stay_duration_friendly": cd.stay_duration_friendly,
-                "air_conditioning": cd.air_conditioning,
-                "smoking_area": cd.smoking_area,
-                "opening_early": cd.opening_early,
-                "late_open": cd.late_open,
-                "instagrammable_score": cd.instagrammable_score,
-                "view_type": cd.view_type,
+                "dietary_options": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
+                "reservation_supported": cd.reservation_supported,
+                "reservation_required": cd.reservation_required,
+                "seating_capacity": cd.seating_capacity,
+                "indoor_seating": cd.indoor_seating,
+                "outdoor_seating": cd.outdoor_seating,
+                "takeaway_available": cd.takeaway_available,
+                "delivery_available": cd.delivery_available,
+                "payment_methods": cd.payment_methods or [],
+                "signature_dishes": cd.signature_dishes or [],
+                "alcohol_served": cd.alcohol_served,
+                "parking_available": cd.parking_available,
+                "wifi_available": cd.wifi_available,
+                "noise_level": cd.noise_level,
+                "suitable_for": cd.suitable_for or [],
+                "best_time_to_visit": cd.best_time_to_visit,
+                "wait_time_peak_minutes": cd.wait_time_peak_minutes,
+                "tea_options": cd.tea_options or [],
+                "coffee_styles": cd.coffee_styles or [],
             }
             if existing.details:
                 await prisma.cafedetails.update(where={"id": existing.details.id}, data=details_payload)
             else:
                 await prisma.cafedetails.create(data={"cafe_id": cafe_id, **details_payload})
-        if data.rag_sources is not None:
-            await prisma.ragsource.delete_many(where={"cafe_id": cafe_id})
-            for rs in data.rag_sources:
-                rag = await prisma.ragsource.create(
-                    data={
-                        "document_id": rs.document_id,
-                        "cafe_id": cafe_id,
-                        "source_type": rs.source_type,
-                        "language": rs.language,
-                    },
-                )
-                if rs.chunks:
-                    await prisma.ragchunk.create_many(
-                        data=[
-                            {
-                                "rag_source_id": rag.id,
-                                "chunk_id": ch.chunk_id,
-                                "chunk_type": ch.chunk_type,
-                                "chunk_text": ch.chunk_text,
-                            }
-                            for ch in rs.chunks
-                        ]
-                    )
 
         if data.menu is not None:
             if getattr(existing, "menu", None) and existing.menu:
@@ -300,12 +275,11 @@ async def update_cafe(
                 "vendor": True,
                 "tags": True,
                 "hours": True,
-                "media": True,
+                "gallery": True,
                 "policies": True,
                 "translations": True,
                 "details": True,
                 "menu": {"include": {"sections": {"include": {"items": True}}}},
-                "rag_sources": {"include": {"chunks": True}},
             },
         )
         out = _serialize_cafe(updated)

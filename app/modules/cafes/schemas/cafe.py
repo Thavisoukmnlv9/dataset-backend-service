@@ -103,10 +103,18 @@ class HoursIn(BaseModel):
 
 
 class GalleryImageIn(BaseModel):
-    """Single gallery image (like Restaurant gallery)."""
+    """Single gallery image (same as Restaurant)."""
     url: Optional[str] = None
     description: Optional[str] = None
     is_cover: bool = False
+    url_file: Optional[Any] = None  # multipart placeholder; send file as gallery_0, gallery_1, ...
+
+
+class GalleryFileMetadataIn(BaseModel):
+    """Metadata for a gallery file upload (is_cover, description). The file is sent as gallery_files[i].file."""
+    is_cover: bool = False
+    description: Optional[str] = None
+    file: Optional[Any] = None
 
 
 class PolicyIn(BaseModel):
@@ -236,7 +244,9 @@ class CafeCreate(BaseModel):
 
     languages_supported: List[str] = Field(default_factory=list)
     cover_image_url: Optional[str] = None
+    cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
+    gallery_files: Optional[List[GalleryFileMetadataIn]] = None
 
     rating_avg: Optional[float] = None
     rating_count: int = 0
@@ -252,6 +262,14 @@ class CafeCreate(BaseModel):
     translations: Optional[Dict[str, TranslationIn]] = None
     category_details: Optional[CafeDetailsIn] = None
     menu: Optional[MenuIn] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def opening_hours_alias(cls, data: Any) -> Any:
+        """Same as Restaurant: accept opening_hours from form and map to hours."""
+        if isinstance(data, dict) and "opening_hours" in data and "hours" not in data:
+            data = {**data, "hours": data["opening_hours"]}
+        return data
 
     @model_validator(mode="after")
     def normalize_tags(self) -> "CafeCreate":
@@ -316,8 +334,9 @@ class CafeUpdate(BaseModel):
 
 
 class CafeFilters(BaseModel):
-    """Query filters for list endpoint."""
+    """Query filters for list endpoint (same pattern as RestaurantFilters)."""
     province: Optional[str] = None
     district: Optional[str] = None
     status: Optional[ListingStatusEnum] = None
+    category: Optional[ListingCategoryEnum] = None
     sub_category: Optional[str] = None

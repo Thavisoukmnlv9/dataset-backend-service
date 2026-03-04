@@ -14,6 +14,7 @@ from app.shared.services.infrastructure.storage import storage_service
 
 from app.modules.cafes.schemas.cafe import (
     CafeCreate,
+    GalleryImageIn,
 )
 
 logger = logging.getLogger(__name__)
@@ -72,18 +73,18 @@ async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
     return None
 
 
-async def _upload_gallery_files(files: List[UploadFile]) -> List[Dict[str, Any]]:
-    """Upload gallery files and return list of {url, description?, is_cover} like Restaurant."""
-    result_list: List[Dict[str, Any]] = []
-    for i, f in enumerate(files or []):
+async def _upload_gallery_files(files: List[UploadFile]) -> List[GalleryImageIn]:
+    """Upload gallery files and return GalleryImageIn list with urls (same as Restaurant)."""
+    out: List[GalleryImageIn] = []
+    for f in files or []:
         if not f or not getattr(f, "filename", None):
             continue
         result = await storage_service.upload_file(f, "cafes/gallery")
         if result.success and result.data:
             path = _to_stored_path(result.data.get("object_name"))
             if path:
-                result_list.append({"url": path, "description": None, "is_cover": i == 0})
-    return result_list
+                out.append(GalleryImageIn(url=path, description=None))
+    return out
 
 
 def _serialize_cafe(c: Any) -> Dict[str, Any]:
@@ -292,7 +293,27 @@ async def create_cafe(
         data.cover_image_url = cover_url
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
     if gallery_uploaded:
-        data.gallery_urls = list(data.gallery_urls) + gallery_uploaded
+        # Merge is_cover and description from gallery_files metadata (same as Restaurant)
+        metadata_list = data.gallery_files or []
+        for i, gu in enumerate(gallery_uploaded):
+            if i < len(metadata_list):
+                meta = metadata_list[i]
+                gu.is_cover = getattr(meta, "is_cover", False)
+                if getattr(meta, "description", None) is not None:
+                    gu.description = meta.description
+        if data.gallery_urls and len(data.gallery_urls) >= len(gallery_uploaded):
+            for i, gu in enumerate(gallery_uploaded):
+                data.gallery_urls[i].url = gu.url
+                data.gallery_urls[i].is_cover = gu.is_cover
+                if gu.description is not None:
+                    data.gallery_urls[i].description = gu.description
+        else:
+            data.gallery_urls = gallery_uploaded
+        if not cover_url and data.cover_image_url is None:
+            for g in data.gallery_urls:
+                if getattr(g, "is_cover", False) and g.url:
+                    data.cover_image_url = g.url
+                    break
 
     async def _upload_menu_source(file: Optional[UploadFile]) -> Optional[str]:
         if not file or not getattr(file, "filename", None):

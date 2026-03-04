@@ -46,6 +46,7 @@ def _serialize_cafe_list_item(c: Any) -> Dict[str, Any]:
         "popularity_score": c.popularity_score,
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+        "gallery": [{"url": path_to_upload_url(g.url), "description": getattr(g, "description", None), "is_cover": getattr(g, "is_cover", False)} for g in (c.gallery or [])],
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (c.tags or [])],
     }
 
@@ -58,6 +59,8 @@ def _build_where(filters: CafeFilters) -> Dict[str, Any]:
         where["district"] = {"equals": filters.district, "mode": "insensitive"}
     if filters.status:
         where["status"] = filters.status.value
+    if filters.category is not None:
+        where["category"] = filters.category.value
     if filters.sub_category:
         where["sub_category"] = {"equals": filters.sub_category, "mode": "insensitive"}
     return where
@@ -89,7 +92,7 @@ async def get_cafes(
             order=order,
             skip=pagination.skip,
             take=pagination.limit,
-            include={"tags": True},
+            include={"gallery": True, "tags": True},
         )
         total = await prisma.cafe.count(where=where)
         serialized = [_serialize_cafe_list_item(r) for r in items]

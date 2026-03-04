@@ -10,6 +10,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.embeddings import embed_text_or_fallback, EMBED_OUTPUT_DIM
 from app.shared.qdrant_client import ensure_collection, upsert_points
 from app.shared.utils.responses.response import create_success_response
+from app.shared.utils.upload_urls import path_to_upload_url
 from app.shared.services.infrastructure.storage import storage_service
 from qdrant_client.models import PointStruct
 
@@ -537,7 +538,7 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "booking_supported": r.booking_supported,
         "walk_in_supported": r.walk_in_supported,
         "languages_supported": r.languages_supported or [],
-        "cover_image_url": r.cover_image_url,
+        "cover_image_url": path_to_upload_url(r.cover_image_url),
         "rating_avg": r.rating_avg,
         "rating_count": r.rating_count or 0,
         "trust_score": r.trust_score,
@@ -545,7 +546,7 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "popularity_score": r.popularity_score,
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-        "gallery": [{"url": g.url, "description": g.description} for g in (r.gallery or [])],
+        "gallery": [{"url": path_to_upload_url(g.url), "description": g.description} for g in (r.gallery or [])],
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
         "policies": [{"policy_type": p.policy_type, "policy_text": p.policy_text} for p in (r.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description} for t in (r.translations or [])},
@@ -570,7 +571,7 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
                 "currency": i.currency,
             }
             if getattr(i, "image_url", None) is not None:
-                item["image_url"] = i.image_url
+                item["image_url"] = path_to_upload_url(i.image_url)
             if getattr(i, "image_description", None) is not None:
                 item["image_description"] = i.image_description
             if getattr(i, "dietary", None) is not None:
@@ -585,7 +586,7 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
         sections.append({"section_name": s.name, "source_type": getattr(s, "source_type", None), "items": items})
     return {
         "source_type": m.source_type,
-        "source_url": getattr(m, "source_url", None) or "",
+        "source_url": path_to_upload_url(getattr(m, "source_url", None)) or "",
         "language": m.language,
         "sections": sections,
     }

@@ -206,6 +206,14 @@ class RestaurantCreate(BaseModel):
             data = {**data, "hours": data["opening_hours"]}
         return data
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_gallery_descriptions(cls, data: Any) -> Any:
+        """Multipart form may send gallery_descriptions as empty string when duplicate keys exist; coerce to None."""
+        if isinstance(data, dict) and data.get("gallery_descriptions") == "":
+            data = {**data, "gallery_descriptions": None}
+        return data
+
     @model_validator(mode="after")
     def normalize_tags(self) -> "RestaurantCreate":
         normalized: List[TagIn] = []

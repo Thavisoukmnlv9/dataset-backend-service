@@ -22,12 +22,13 @@ router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
 # Form keys whose value is a JSON string (list or dict)
 _FORM_JSON_KEYS = frozenset({
-    "languages_supported", "gallery_urls", "gallery_descriptions", "tags", "hours", "opening_hours",
+    "languages_supported", "gallery_urls", "gallery_files", "gallery_descriptions", "tags", "hours", "opening_hours",
     "policies", "translations", "menu", "category_details",
 })
 
 _GALLERY_FILE_PATTERN = re.compile(r"^gallery_urls\.url_file\[(\d+)\]$")
 _GALLERY_FILES_IMAGE_PATTERN = re.compile(r"^gallery_files\[(\d+)\]\.image$")
+_GALLERY_FILES_FILE_PATTERN = re.compile(r"^gallery_files\[(\d+)\]\.file$")
 _MENU_IMAGE_PATTERN = re.compile(r"^menu\.sections\[(\d+)\]\.items\[(\d+)\]\.image_file(?:\[(\d+)\])?$")
 
 
@@ -144,6 +145,10 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
                 gallery_by_index[int(m.group(1))] = value
                 continue
             m = _GALLERY_FILES_IMAGE_PATTERN.match(key)
+            if m:
+                gallery_by_index[int(m.group(1))] = value
+                continue
+            m = _GALLERY_FILES_FILE_PATTERN.match(key)
             if m:
                 gallery_by_index[int(m.group(1))] = value
                 continue

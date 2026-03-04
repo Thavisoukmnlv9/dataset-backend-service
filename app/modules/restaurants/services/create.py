@@ -217,7 +217,6 @@ async def create_restaurant(
     gallery_files: Optional[List[UploadFile]] = None,
     menu_item_files: Optional[Dict[Tuple[int, int], List[UploadFile]]] = None,
 ) -> Dict[str, Any]:
-    now = datetime.now(timezone.utc)
 
     cover_url = await _upload_cover_image(cover_image_file)
     if cover_url:
@@ -238,11 +237,10 @@ async def create_restaurant(
         for (sec_idx, item_idx), files in sorted(menu_item_files.items()):
             if not files or sec_idx >= len(data.menu.sections) or item_idx >= len(data.menu.sections[sec_idx].items):
                 continue
-            # Use first uploaded image as menu item image_url (schema has single image_url per item)
             url = await _upload_single_file(files[0], "restaurants/menu_items")
             if url:
                 data.menu.sections[sec_idx].items[item_idx].image_url = url
-
+    
     try:
         async with prisma.tx() as tx:
             resolved_slug = await _resolve_slug(tx, data.slug, data.name)
@@ -390,7 +388,6 @@ async def create_restaurant(
             created_in_tx = await tx.restaurant.create(data=create_data)
             rest_id = created_in_tx.id
 
-        # Fetch full restaurant with relations (for response and for Qdrant payload)
         created = await prisma.restaurant.find_unique(
             where={"id": rest_id},
             include={
@@ -406,7 +403,6 @@ async def create_restaurant(
         full_payload = _serialize_restaurant(
             created) if created else {"id": rest_id}
 
-        # Index in Qdrant with full restaurant data (no fields cut; for RAG)
         searchable_text = _build_searchable_text(data)
         if not searchable_text:
             searchable_text = data.name or str(rest_id)

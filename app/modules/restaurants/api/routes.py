@@ -26,8 +26,9 @@ _FORM_JSON_KEYS = frozenset({
     "policies", "translations", "menu", "category_details",
 })
 
-# Regex for gallery file keys: gallery_urls.url_file[0], gallery_urls.url_file[1], ...
+# Regex for gallery file keys: gallery_urls.url_file[0], gallery_files[0].image, gallery_files[1].image, ...
 _GALLERY_FILE_PATTERN = re.compile(r"^gallery_urls\.url_file\[(\d+)\]$")
+_GALLERY_FILES_IMAGE_PATTERN = re.compile(r"^gallery_files\[(\d+)\]\.image$")
 # Regex for menu item image keys: menu.sections[0].items[1].image_file
 _MENU_IMAGE_PATTERN = re.compile(r"^menu\.sections\[(\d+)\]\.items\[(\d+)\]\.image_file$")
 
@@ -140,6 +141,10 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
             gallery_by_index[int(key[8:])] = value
         else:
             m = _GALLERY_FILE_PATTERN.match(key)
+            if m:
+                gallery_by_index[int(m.group(1))] = value
+                continue
+            m = _GALLERY_FILES_IMAGE_PATTERN.match(key)
             if m:
                 gallery_by_index[int(m.group(1))] = value
                 continue

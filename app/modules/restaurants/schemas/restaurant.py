@@ -68,6 +68,13 @@ class GalleryImageIn(BaseModel):
     url_file: Optional[Any] = None  # multipart placeholder; send file as gallery_0, gallery_1, ...
 
 
+class GalleryFileMetadataIn(BaseModel):
+    """Metadata for a gallery file upload (is_cover, description). The file itself is sent as gallery_files[i].file."""
+    is_cover: bool = False
+    description: Optional[str] = None
+    file: Optional[Any] = None  # ignored; actual file sent as multipart gallery_files[i].file
+
+
 class TagIn(BaseModel):
     tag_type: TagTypeEnum
     tag_value: str
@@ -195,6 +202,7 @@ class RestaurantCreate(BaseModel):
     cover_image_url: Optional[str] = None
     cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
+    gallery_files: Optional[List[GalleryFileMetadataIn]] = None  # metadata (is_cover, description) when uploading files
     rating_avg: Optional[float] = None
     rating_count: int = 0
     trust_score: Optional[int] = None

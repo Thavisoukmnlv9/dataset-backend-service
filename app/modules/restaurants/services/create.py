@@ -225,11 +225,28 @@ async def create_restaurant(
     menu_source_url = await _upload_menu_source(menu_source_file)
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
     if gallery_uploaded:
+        # Merge is_cover and description from gallery_files metadata (form sends gallery_files as JSON with is_cover per index)
+        metadata_list = data.gallery_files or []
+        for i, gu in enumerate(gallery_uploaded):
+            if i < len(metadata_list):
+                meta = metadata_list[i]
+                gu.is_cover = getattr(meta, "is_cover", False)
+                if getattr(meta, "description", None) is not None:
+                    gu.description = meta.description
         if data.gallery_urls and len(data.gallery_urls) >= len(gallery_uploaded):
             for i, gu in enumerate(gallery_uploaded):
                 data.gallery_urls[i].url = gu.url
+                data.gallery_urls[i].is_cover = gu.is_cover
+                if gu.description is not None:
+                    data.gallery_urls[i].description = gu.description
         else:
             data.gallery_urls = gallery_uploaded
+        # If no separate cover image was uploaded, use the gallery item marked as cover
+        if not cover_url and data.cover_image_url is None:
+            for g in data.gallery_urls:
+                if getattr(g, "is_cover", False) and g.url:
+                    data.cover_image_url = g.url
+                    break
     if menu_source_url and data.menu:
         data.menu.source_url = menu_source_url
 

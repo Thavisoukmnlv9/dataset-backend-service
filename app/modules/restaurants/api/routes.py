@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
-# Form keys whose value is a JSON string (list or dict)
 _FORM_JSON_KEYS = frozenset({
     "languages_supported", "gallery_urls", "gallery_files", "gallery_descriptions", "tags", "hours", "opening_hours",
     "policies", "translations", "menu", "category_details",

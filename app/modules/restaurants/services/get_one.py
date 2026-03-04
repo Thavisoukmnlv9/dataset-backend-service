@@ -37,7 +37,13 @@ async def get_restaurant(restaurant_id: str) -> Dict[str, Any]:
         r = await prisma.restaurant.find_unique(
             where={"id": restaurant_id},
             include={
-                "gallery": True,
+                "gallery": {
+                    "include": {
+                        "id": True,
+                        "url": True,
+                        "description": True,
+                    }
+                },
                 "tags": True,
                 "policies": True,
                 "translations": True,

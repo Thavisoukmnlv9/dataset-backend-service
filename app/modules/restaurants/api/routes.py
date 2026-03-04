@@ -22,8 +22,8 @@ router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
 # Form keys whose value is a JSON string (list or dict)
 _FORM_JSON_KEYS = frozenset({
-    "languages_supported", "gallery_urls", "tags", "hours", "policies",
-    "translations", "menu", "category_details",
+    "languages_supported", "gallery_urls", "gallery_descriptions", "tags", "hours", "opening_hours",
+    "policies", "translations", "menu", "category_details",
 })
 
 # Regex for gallery file keys: gallery_urls.url_file[0], gallery_urls.url_file[1], ...
@@ -120,6 +120,12 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
     # Accept multiple common names for cover image (e.g. cover_image_file, cover_image, coverImageFile)
     _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile", "cover_image_url"})
 
+    # Collect multiple "gallery_files" (same key repeated)
+    gallery_files_list: List[UploadFile] = []
+    for key, value in form.items():
+        if key == "gallery_files" and _is_upload_file(value):
+            gallery_files_list.append(value)
+
     for key, value in form.items():
         if not _is_upload_file(value):
             continue
@@ -127,6 +133,9 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
             cover_file = value
         elif key == "menu_source_file":
             menu_source_file = value
+        elif key == "gallery_files":
+            # Already collected above
+            continue
         elif key.startswith("gallery_") and key[8:].isdigit():
             gallery_by_index[int(key[8:])] = value
         else:
@@ -138,7 +147,11 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
             if m:
                 menu_item_files[(int(m.group(1)), int(m.group(2)))] = value
 
-    gallery_ordered = [gallery_by_index[i] for i in sorted(gallery_by_index)]
+    # Prefer ordered gallery_files (multiple same key), then gallery_0, gallery_1, then gallery_urls.url_file[n]
+    if gallery_files_list:
+        gallery_ordered = gallery_files_list
+    else:
+        gallery_ordered = [gallery_by_index[i] for i in sorted(gallery_by_index)]
     return cover_file, gallery_ordered, menu_source_file, menu_item_files
 
 
@@ -201,15 +214,15 @@ async def create_restaurant(request: Request, admin_user=Depends(get_admin_user)
     from app.modules.restaurants.services.create import create_restaurant as _create
     
     form = await request.form()
-    form_dict = dict(form)
+    form_dict = dict(form)  # for parsing; duplicate keys get last value
 
-    if "data" in form_dict and not _is_upload_file(form_dict["data"]):
+    if "data" in form_dict and not _is_upload_file(form_dict.get("data")):
         data_str = form_dict["data"]
         payload = json.loads(data_str)
-        cover_file, gallery_ordered, menu_source_file, menu_item_files = _collect_files_from_form(form_dict)
+        cover_file, gallery_ordered, menu_source_file, menu_item_files = _collect_files_from_form(form)
     else:
         payload = _parse_flat_form(form_dict)
-        cover_file, gallery_ordered, menu_source_file, menu_item_files = _collect_files_from_form(form_dict)
+        cover_file, gallery_ordered, menu_source_file, menu_item_files = _collect_files_from_form(form)
 
     restaurant_data = RestaurantCreate.model_validate(payload)
     return await _create(

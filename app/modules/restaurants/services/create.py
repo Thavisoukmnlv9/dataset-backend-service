@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 from datetime import datetime, timezone, date
 from enum import Enum
@@ -90,6 +91,27 @@ def _to_stored_path(object_name: Optional[str]) -> Optional[str]:
     if s.startswith("uploads/"):
         return "/" + s
     return f"{UPLOADS_PREFIX}/{s}"
+
+
+def _slugify(text: str) -> str:
+    """Generate URL-safe slug from name."""
+    if not text or not text.strip():
+        return "restaurant-" + uuid.uuid4().hex[:8]
+    s = re.sub(r"[^a-z0-9]+", "-", text.lower().strip()).strip("-")
+    return s or "restaurant-" + uuid.uuid4().hex[:8]
+
+
+async def _resolve_slug(tx: Any, slug: Optional[str], name: str) -> str:
+    """Return slug to use; if slug is None/empty, generate from name and ensure unique."""
+    base = (slug or "").strip() or _slugify(name)
+    candidate = base
+    n = 0
+    while True:
+        existing = await tx.restaurant.find_unique(where={"slug": candidate})
+        if not existing:
+            return candidate
+        n += 1
+        candidate = f"{base}-{n}"
 
 
 def _build_searchable_text(data: RestaurantCreate) -> str:
@@ -209,6 +231,12 @@ async def create_restaurant(
                 data.gallery_urls[i].url = gu.url
         else:
             data.gallery_urls = gallery_uploaded
+        # Merge gallery_descriptions (id -> description) by index with uploaded files
+        if getattr(data, "gallery_descriptions", None) and isinstance(data.gallery_descriptions, dict):
+            desc_list = list(data.gallery_descriptions.values())
+            for i, g in enumerate(data.gallery_urls):
+                if i < len(desc_list) and desc_list[i]:
+                    g.description = desc_list[i]
     if menu_source_url and data.menu:
         data.menu.source_url = menu_source_url
 
@@ -221,18 +249,18 @@ async def create_restaurant(
 
     try:
         async with prisma.tx() as tx:
-            slug_exists = await tx.restaurant.find_unique(where={"slug": data.slug})
-            if slug_exists:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Restaurant with this slug already exists",
-                )
+            resolved_slug = await _resolve_slug(tx, data.slug, data.name)
 
             create_data: Dict[str, Any] = {
                 "category": data.category.value,
                 "name": data.name,
-                "slug": data.slug,
+                "slug": resolved_slug,
                 "status": data.status.value,
+                "vendor_name": data.vendor_name,
+                "contact_phone": data.contact_phone,
+                "whatsapp": data.whatsapp,
+                "email": data.email,
+                "verification_status": data.verification_status.value if data.verification_status else None,
                 "short_description": data.short_description,
                 "long_description": data.long_description,
                 "country": data.country,
@@ -295,9 +323,14 @@ async def create_restaurant(
                     create_data["translations"] = {"create": trans_list}
 
             if data.hours and getattr(data.hours, "weekly_schedule", None):
-                create_data["hours"] = {
-                    "create": {"weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}
+                hours_payload: Dict[str, Any] = {
+                    "weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))
                 }
+                if getattr(data.hours, "timezone", None):
+                    hours_payload["timezone"] = data.hours.timezone
+                if getattr(data.hours, "special_notes", None) is not None:
+                    hours_payload["special_notes"] = PrismaJson(data.hours.special_notes)
+                create_data["hours"] = {"create": hours_payload}
 
             if data.menu:
                 menu = data.menu
@@ -320,6 +353,7 @@ async def create_restaurant(
                         })
                     sections_create.append({
                         "name": sec.section_name,
+                        "source_type": sec.source_type if getattr(sec, "source_type", None) else None,
                         "sort_order": i,
                         "items": {"create": items_create},
                     })
@@ -352,6 +386,13 @@ async def create_restaurant(
                         "delivery_available": cd.delivery_available,
                         "payment_methods": cd.payment_methods or [],
                         "signature_dishes": cd.signature_dishes or [],
+                        "alcohol_served": cd.alcohol_served,
+                        "parking_available": cd.parking_available,
+                        "wifi_available": cd.wifi_available,
+                        "noise_level": cd.noise_level,
+                        "suitable_for": cd.suitable_for or [],
+                        "best_time_to_visit": cd.best_time_to_visit,
+                        "wait_time_peak_minutes": cd.wait_time_peak_minutes,
                     }
                 }
 
@@ -491,6 +532,11 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "name": r.name,
         "slug": r.slug,
         "status": r.status,
+        "vendor_name": getattr(r, "vendor_name", None),
+        "contact_phone": getattr(r, "contact_phone", None),
+        "whatsapp": getattr(r, "whatsapp", None),
+        "email": getattr(r, "email", None),
+        "verification_status": getattr(r, "verification_status", None),
         "short_description": r.short_description,
         "long_description": r.long_description,
         "country": r.country,
@@ -519,7 +565,7 @@ def _serialize_restaurant(r: Any) -> Dict[str, Any]:
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
         "policies": [{"policy_type": p.policy_type, "policy_text": p.policy_text} for p in (r.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description} for t in (r.translations or [])},
-        "hours": {"weekly_schedule": r.hours.weekly_schedule} if r.hours else None,
+        "hours": {"timezone": getattr(r.hours, "timezone", None), "weekly_schedule": r.hours.weekly_schedule, "special_notes": getattr(r.hours, "special_notes", None)} if r.hours else None,
         "menu": _serialize_menu(r.menu) if r.menu else None,
         "category_details": _serialize_details(r.details) if r.details else None,
     }
@@ -552,7 +598,7 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
             if getattr(i, "tags", None) is not None:
                 item["tags"] = i.tags or []
             items.append(item)
-        sections.append({"section_name": s.name, "items": items})
+        sections.append({"section_name": s.name, "source_type": getattr(s, "source_type", None), "items": items})
     return {
         "source_type": m.source_type,
         "source_url": getattr(m, "source_url", None) or "",
@@ -579,4 +625,11 @@ def _serialize_details(d: Any) -> Optional[Dict[str, Any]]:
         "delivery_available": d.delivery_available,
         "payment_methods": d.payment_methods or [],
         "signature_dishes": d.signature_dishes or [],
+        "alcohol_served": getattr(d, "alcohol_served", False),
+        "parking_available": getattr(d, "parking_available", False),
+        "wifi_available": getattr(d, "wifi_available", False),
+        "noise_level": getattr(d, "noise_level", None),
+        "suitable_for": getattr(d, "suitable_for", None) or [],
+        "best_time_to_visit": getattr(d, "best_time_to_visit", None),
+        "wait_time_peak_minutes": getattr(d, "wait_time_peak_minutes", None),
     }

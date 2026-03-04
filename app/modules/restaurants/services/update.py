@@ -66,6 +66,16 @@ async def update_restaurant(
 
         # Build update payload (only set provided fields)
         update_payload: Dict[str, Any] = {}
+        if data.vendor_name is not None:
+            update_payload["vendor_name"] = data.vendor_name
+        if data.contact_phone is not None:
+            update_payload["contact_phone"] = data.contact_phone
+        if data.whatsapp is not None:
+            update_payload["whatsapp"] = data.whatsapp
+        if data.email is not None:
+            update_payload["email"] = data.email
+        if data.verification_status is not None:
+            update_payload["verification_status"] = data.verification_status.value
         if data.name is not None:
             update_payload["name"] = data.name
         if data.slug is not None:
@@ -138,15 +148,19 @@ async def update_restaurant(
                 )
         if data.hours is not None and data.hours.weekly_schedule:
             from app.modules.restaurants.services.create import _to_prisma_weekly_schedule
-            hours_json = PrismaJson(_to_prisma_weekly_schedule(data.hours))
+            hours_payload: Dict[str, Any] = {"weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}
+            if getattr(data.hours, "timezone", None):
+                hours_payload["timezone"] = data.hours.timezone
+            if getattr(data.hours, "special_notes", None) is not None:
+                hours_payload["special_notes"] = PrismaJson(data.hours.special_notes)
             if existing.hours:
                 await prisma.restauranthours.update(
                     where={"id": existing.hours.id},
-                    data={"weekly_schedule": hours_json},
+                    data=hours_payload,
                 )
             else:
                 await prisma.restauranthours.create(
-                    data={"restaurant_id": restaurant_id, "weekly_schedule": hours_json},
+                    data={"restaurant_id": restaurant_id, **hours_payload},
                 )
         if data.translations is not None:
             await prisma.restauranttranslation.delete_many(where={"restaurant_id": restaurant_id})
@@ -173,6 +187,13 @@ async def update_restaurant(
                 "delivery_available": cd.delivery_available,
                 "payment_methods": cd.payment_methods or [],
                 "signature_dishes": cd.signature_dishes or [],
+                "alcohol_served": cd.alcohol_served,
+                "parking_available": cd.parking_available,
+                "wifi_available": cd.wifi_available,
+                "noise_level": cd.noise_level,
+                "suitable_for": cd.suitable_for or [],
+                "best_time_to_visit": cd.best_time_to_visit,
+                "wait_time_peak_minutes": cd.wait_time_peak_minutes,
             }
             if existing.details:
                 await prisma.restaurantdetails.update(where={"id": existing.details.id}, data=details_payload)

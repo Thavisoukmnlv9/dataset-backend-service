@@ -215,6 +215,13 @@ model Restaurant {
   slug     String          @unique
   status   ListingStatus   @default(ACTIVE)
 
+  // Vendor / contact
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status VerificationStatus?
+
   short_description String?
   long_description  String?
 
@@ -313,7 +320,9 @@ model RestaurantTranslation {
 model RestaurantHours {
   id              String     @id @default(uuid())
   restaurant_id   String     @unique
+  timezone        String?
   weekly_schedule Json
+  special_notes   Json?      // array of strings
   restaurant      Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@map("restaurant_hours")
@@ -338,12 +347,13 @@ model RestaurantMenu {
 }
 
 model MenuSection {
-  id         String         @id @default(uuid())
-  menu_id    String
-  name       String
-  sort_order Int            @default(0)
-  menu       RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
-  items      MenuItem[]
+  id          String         @id @default(uuid())
+  menu_id     String
+  name        String
+  source_type String?        // MAIN, SIDE, DRINK, DESSERT
+  sort_order  Int            @default(0)
+  menu        RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       MenuItem[]
 
   @@index([menu_id])
   @@map("menu_sections")
@@ -387,6 +397,13 @@ model RestaurantDetails {
   delivery_available    Boolean    @default(false)
   payment_methods       String[]
   signature_dishes      String[]
+  alcohol_served        Boolean    @default(false)
+  parking_available     Boolean    @default(false)
+  wifi_available        Boolean    @default(false)
+  noise_level           String?
+  suitable_for          String[]
+  best_time_to_visit    String?
+  wait_time_peak_minutes Int?
   restaurant            Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
 
   @@index([restaurant_id])
@@ -411,7 +428,9 @@ enum ListingStatus {
 
 enum PriceBand {
   BUDGET
+  LOW
   MID
+  HIGH
   PREMIUM
   LUXURY
 }
@@ -451,4 +470,10 @@ enum RoleType {
   SUPPORT
   RESTAURANT
   VEHICLE_RENTAL
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
 }

@@ -1,9 +1,9 @@
 """Restaurant API schemas aligned with Prisma model and restaurant.json."""
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ListingCategoryEnum(str, Enum):
@@ -24,9 +24,17 @@ class ListingStatusEnum(str, Enum):
 
 class PriceBandEnum(str, Enum):
     BUDGET = "BUDGET"
+    LOW = "LOW"
     MID = "MID"
+    HIGH = "HIGH"
     PREMIUM = "PREMIUM"
     LUXURY = "LUXURY"
+
+
+class VerificationStatusEnum(str, Enum):
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
 
 
 class TagTypeEnum(str, Enum):
@@ -81,7 +89,9 @@ class WeeklyDay(BaseModel):
 
 
 class HoursIn(BaseModel):
+    timezone: Optional[str] = None
     weekly_schedule: Dict[str, WeeklyDay]
+    special_notes: Optional[List[str]] = None
 
 
 class MenuItemIn(BaseModel):
@@ -101,6 +111,7 @@ class MenuItemIn(BaseModel):
 
 class MenuSectionIn(BaseModel):
     section_name: str
+    source_type: Optional[str] = None
     items: List[MenuItemIn]
 
 
@@ -129,16 +140,30 @@ class CategoryDetailsIn(BaseModel):
     delivery_available: bool = False
     payment_methods: List[str] = Field(default_factory=list)
     signature_dishes: List[str] = Field(default_factory=list)
+    alcohol_served: bool = False
+    parking_available: bool = False
+    wifi_available: bool = False
+    noise_level: Optional[str] = None
+    suitable_for: List[str] = Field(default_factory=list)
+    best_time_to_visit: Optional[str] = None
+    wait_time_peak_minutes: Optional[int] = None
 
 
 # ── Main restaurant payload (snake_case for JSON upload) ───────────────────
 
 class RestaurantCreate(BaseModel):
-    """Payload to create a restaurant (e.g. from restaurant.json)."""
+    """Payload to create a restaurant (e.g. from restaurant.json or multipart form)."""
     id: Optional[str] = None  # If omitted, server can generate
+    # Vendor / contact (from form)
+    vendor_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    verification_status: Optional[VerificationStatusEnum] = None
+    # Listing
     category: ListingCategoryEnum = ListingCategoryEnum.RESTAURANT
     name: str
-    slug: str
+    slug: Optional[str] = None  # Generated from name if omitted
     status: ListingStatusEnum = ListingStatusEnum.ACTIVE
     short_description: Optional[str] = None
     long_description: Optional[str] = None
@@ -159,12 +184,13 @@ class RestaurantCreate(BaseModel):
     cover_image_url: Optional[str] = None
     cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
+    gallery_descriptions: Optional[Dict[str, str]] = None  # id -> description; merged with gallery_files by index
     rating_avg: Optional[float] = None
     rating_count: int = 0
     trust_score: Optional[int] = None
     quality_score: Optional[int] = None
     popularity_score: Optional[int] = None
-    tags: List[TagIn] = Field(default_factory=list)
+    tags: List[Union[TagIn, str]] = Field(default_factory=list)  # str -> TagIn(tag_type=OTHER, tag_value=s)
     hours: Optional[HoursIn] = None
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
@@ -173,9 +199,31 @@ class RestaurantCreate(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def opening_hours_alias(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "opening_hours" in data and "hours" not in data:
+            data = {**data, "hours": data["opening_hours"]}
+        return data
+
+    @model_validator(mode="after")
+    def normalize_tags(self) -> "RestaurantCreate":
+        normalized: List[TagIn] = []
+        for t in self.tags or []:
+            if isinstance(t, str):
+                normalized.append(TagIn(tag_type=TagTypeEnum.OTHER, tag_value=t))
+            else:
+                normalized.append(t)
+        return self.model_copy(update={"tags": normalized})
+
 
 class RestaurantUpdate(BaseModel):
     """Partial update payload."""
+    vendor_name: Optional[str] = None
+    contact_phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    verification_status: Optional[VerificationStatusEnum] = None
     name: Optional[str] = None
     slug: Optional[str] = None
     status: Optional[ListingStatusEnum] = None

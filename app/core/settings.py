@@ -39,12 +39,14 @@ SERVICES_TO_LOAD = [
     ServiceConfig(name="Auth", import_path="app.modules.auth.api.routes", router_name="router"),
     ServiceConfig(name="Users", import_path="app.modules.users.api.routes", router_name="router"),
     ServiceConfig(name="Restaurants", import_path="app.modules.restaurants.api.routes", router_name="router"),
+    ServiceConfig(name="Cafes", import_path="app.modules.cafes.api.routes", router_name="router"),
 ]
 
 API_ENDPOINTS = {
     "auth": "/api/v1/auth",
     "users": "/api/v1/users",
     "restaurants": "/api/v1/restaurants",
+    "cafes": "/api/v1/cafes",
 }
 
 app_settings = AppSettings()

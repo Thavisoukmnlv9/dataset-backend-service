@@ -237,9 +237,15 @@ async def create_restaurant(
         for (sec_idx, item_idx), files in sorted(menu_item_files.items()):
             if not files or sec_idx >= len(data.menu.sections) or item_idx >= len(data.menu.sections[sec_idx].items):
                 continue
-            url = await _upload_single_file(files[0], "restaurants/menu_items")
-            if url:
-                data.menu.sections[sec_idx].items[item_idx].image_url = url
+            item = data.menu.sections[sec_idx].items[item_idx]
+            existing = list(item.image_url) if item.image_url else []
+            new_urls = []
+            for f in files:
+                url = await _upload_single_file(f, "restaurants/menu_items")
+                if url:
+                    new_urls.append(url)
+            if new_urls:
+                item.image_url = existing + new_urls
     
     try:
         async with prisma.tx() as tx:
@@ -568,8 +574,7 @@ def _serialize_menu(m: Any) -> Optional[Dict[str, Any]]:
                 "price": i.price,
                 "currency": i.currency,
             }
-            if getattr(i, "image_url", None) is not None:
-                item["image_url"] = path_to_upload_url(i.image_url)
+            item["image_url"] = [path_to_upload_url(u) for u in (getattr(i, "image_url", None) or [])]
             if getattr(i, "image_description", None) is not None:
                 item["image_description"] = i.image_description
             if getattr(i, "dietary", None) is not None:

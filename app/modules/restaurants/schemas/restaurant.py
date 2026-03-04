@@ -100,13 +100,25 @@ class MenuItemIn(BaseModel):
     description: Optional[str] = None
     price: Optional[int] = None
     currency: Optional[str] = None
-    image_url: Optional[str] = None
+    image_url: List[str] = Field(default_factory=list)
     image_description: Optional[str] = None
     image_file: Optional[Any] = None  # multipart placeholder (per-item image; use image_url or future form field)
     dietary: Optional[Dict[str, Any]] = None
     spice_level: Optional[SpiceLevelEnum] = None
     allergens: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def image_url_to_list(cls, data: Any) -> Any:
+        """Accept image_url as string or list; normalize to list."""
+        if isinstance(data, dict) and "image_url" in data:
+            v = data["image_url"]
+            if isinstance(v, str):
+                data = {**data, "image_url": [v] if v.strip() else []}
+            elif v is None:
+                data = {**data, "image_url": []}
+        return data
 
 
 class MenuSectionIn(BaseModel):

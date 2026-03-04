@@ -28,7 +28,7 @@ def _apply_upload_urls(data: Dict[str, Any]) -> Dict[str, Any]:
         for sec in menu.get("sections") or []:
             for item in sec.get("items") or []:
                 if item.get("image_url") is not None:
-                    item["image_url"] = path_to_upload_url(item["image_url"])
+                    item["image_url"] = [path_to_upload_url(u) for u in (item["image_url"] or [])]
     return data
 
 

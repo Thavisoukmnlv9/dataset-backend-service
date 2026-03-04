@@ -368,7 +368,7 @@ model MenuItem {
   description       String?
   price             Int?
   currency          String?
-  image_url         String?
+  image_url         String[]
   image_description String?
   dietary           Json?
   spice_level       SpiceLevel?

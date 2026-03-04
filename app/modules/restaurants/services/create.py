@@ -215,7 +215,7 @@ async def create_restaurant(
     cover_image_file: Optional[UploadFile] = None,
     menu_source_file: Optional[UploadFile] = None,
     gallery_files: Optional[List[UploadFile]] = None,
-    menu_item_files: Optional[Dict[Tuple[int, int], UploadFile]] = None,
+    menu_item_files: Optional[Dict[Tuple[int, int], List[UploadFile]]] = None,
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
 
@@ -235,11 +235,13 @@ async def create_restaurant(
         data.menu.source_url = menu_source_url
 
     if menu_item_files and data.menu and data.menu.sections:
-        for (sec_idx, item_idx), file in sorted(menu_item_files.items()):
-            if sec_idx < len(data.menu.sections) and item_idx < len(data.menu.sections[sec_idx].items):
-                url = await _upload_single_file(file, "restaurants/menu_items")
-                if url:
-                    data.menu.sections[sec_idx].items[item_idx].image_url = url
+        for (sec_idx, item_idx), files in sorted(menu_item_files.items()):
+            if not files or sec_idx >= len(data.menu.sections) or item_idx >= len(data.menu.sections[sec_idx].items):
+                continue
+            # Use first uploaded image as menu item image_url (schema has single image_url per item)
+            url = await _upload_single_file(files[0], "restaurants/menu_items")
+            if url:
+                data.menu.sections[sec_idx].items[item_idx].image_url = url
 
     try:
         async with prisma.tx() as tx:

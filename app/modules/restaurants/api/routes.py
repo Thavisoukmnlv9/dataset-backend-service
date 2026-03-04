@@ -26,11 +26,9 @@ _FORM_JSON_KEYS = frozenset({
     "policies", "translations", "menu", "category_details",
 })
 
-# Regex for gallery file keys: gallery_urls.url_file[0], gallery_files[0].image, gallery_files[1].image, ...
 _GALLERY_FILE_PATTERN = re.compile(r"^gallery_urls\.url_file\[(\d+)\]$")
 _GALLERY_FILES_IMAGE_PATTERN = re.compile(r"^gallery_files\[(\d+)\]\.image$")
-# Regex for menu item image keys: menu.sections[0].items[1].image_file
-_MENU_IMAGE_PATTERN = re.compile(r"^menu\.sections\[(\d+)\]\.items\[(\d+)\]\.image_file$")
+_MENU_IMAGE_PATTERN = re.compile(r"^menu\.sections\[(\d+)\]\.items\[(\d+)\]\.image_file(?:\[(\d+)\])?$")
 
 
 def _is_upload_file(value: Any) -> bool:
@@ -110,13 +108,14 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
     Optional[UploadFile],
     List[UploadFile],
     Optional[UploadFile],
-    Dict[Tuple[int, int], UploadFile],
+    Dict[Tuple[int, int], List[UploadFile]],
 ]:
-    """Extract cover_image_file, gallery files (ordered), menu_source_file, menu item image files."""
+    """Extract cover_image_file, gallery files (ordered), menu_source_file, menu item image files (list per item)."""
     cover_file: Optional[UploadFile] = None
     gallery_by_index: Dict[int, UploadFile] = {}
     menu_source_file: Optional[UploadFile] = None
-    menu_item_files: Dict[Tuple[int, int], UploadFile] = {}
+    # (sec_idx, item_idx) -> { file_index: UploadFile } then converted to list in order
+    menu_item_by_index: Dict[Tuple[int, int], Dict[int, UploadFile]] = {}
 
     # Accept multiple common names for cover image (e.g. cover_image_file, cover_image, coverImageFile)
     _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile", "cover_image_url"})
@@ -150,14 +149,24 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[
                 continue
             m = _MENU_IMAGE_PATTERN.match(key)
             if m:
-                menu_item_files[(int(m.group(1)), int(m.group(2)))] = value
+                sec_idx = int(m.group(1))
+                item_idx = int(m.group(2))
+                file_idx = int(m.group(3)) if m.group(3) is not None else 0
+                k = (sec_idx, item_idx)
+                if k not in menu_item_by_index:
+                    menu_item_by_index[k] = {}
+                menu_item_by_index[k][file_idx] = value
 
     # Prefer ordered gallery_files (multiple same key), then gallery_0, gallery_1, then gallery_urls.url_file[n]
     if gallery_files_list:
         gallery_ordered = gallery_files_list
     else:
         gallery_ordered = [gallery_by_index[i] for i in sorted(gallery_by_index)]
-    return cover_file, gallery_ordered, menu_source_file, menu_item_files
+    # Build ordered list of files per (sec_idx, item_idx)
+    menu_item_files_clean: Dict[Tuple[int, int], List[UploadFile]] = {}
+    for k, by_idx in menu_item_by_index.items():
+        menu_item_files_clean[k] = [by_idx[i] for i in sorted(by_idx)]
+    return cover_file, gallery_ordered, menu_source_file, menu_item_files_clean
 
 
 @router.get("", summary="List restaurants")

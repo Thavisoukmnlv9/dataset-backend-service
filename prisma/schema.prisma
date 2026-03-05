@@ -807,7 +807,7 @@ model BarHours {
   bar_id          String  @unique
   timezone        String?
   weekly_schedule Json
-  special_notes   Json? // array of strings
+  special_notes   Json?
   bar             Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 
   @@map("bar_hours")
@@ -889,4 +889,164 @@ model BarDetails {
 
   @@index([bar_id])
   @@map("bar_details")
+}
+
+model Attraction {
+  id       String @id @default(uuid())
+  category String
+  name     String
+  slug     String @unique
+  status   String
+
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String?
+  long_description  String?
+
+  country      String
+  province     String
+  district     String
+  village      String?
+  address_text String?
+
+  latitude  Float?
+  longitude Float?
+
+  price_band String?
+  currency   String?
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean @default(false)
+  walk_in_supported Boolean @default(true)
+
+  languages_supported String[]
+
+  cover_image_url String?
+  rating_avg      Float?
+  rating_count    Int     @default(0)
+
+  trust_score      Int?
+  quality_score    Int?
+  popularity_score Int?
+
+  gallery      AttractionGalleryImage[]
+  tags         AttractionTag[]
+  policies     AttractionPolicy[]
+  translations AttractionTranslation[]
+  hours        AttractionHours?
+  details      AttractionDetails?       @relation(fields: [attractionDetailsId], references: [id])
+
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  attractionDetailsId String?
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+  @@map("attractions")
+}
+
+model AttractionGalleryImage {
+  id            String     @id @default(uuid())
+  attraction_id String
+  url           String
+  description   String?
+  is_cover      Boolean    @default(false)
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@index([attraction_id])
+  @@map("attraction_gallery_images")
+}
+
+model AttractionTag {
+  id            String     @id @default(uuid())
+  attraction_id String
+  tag_type      String
+  tag_value     String
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@index([attraction_id])
+  @@index([tag_type, tag_value])
+  @@map("attraction_tags")
+}
+
+model AttractionPolicy {
+  id            String     @id @default(uuid())
+  attraction_id String
+  policy_type   PolicyType
+  policy_text   String
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@index([attraction_id])
+  @@index([policy_type])
+  @@map("attraction_policies")
+}
+
+model AttractionTranslation {
+  id                String     @id @default(uuid())
+  attraction_id     String
+  language          String
+  name              String?
+  short_description String?
+  attraction        Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@unique([attraction_id, language])
+  @@index([language])
+  @@map("attraction_translations")
+}
+
+model AttractionHours {
+  id              String     @id @default(uuid())
+  attraction_id   String     @unique
+  timezone        String?
+  weekly_schedule Json
+  special_notes   Json?
+  attraction      Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@map("attraction_hours")
+}
+
+model AttractionDetails {
+  id                                   String       @id @default(uuid())
+  attraction_id                        String       @unique
+  attraction_type                      String[]
+  ownership_type                       String[]
+  entry_fee_adult                      Int?
+  entry_fee_child                      Int?
+  ticketing_type                       String
+  recommended_visit_duration_minutes   Int?
+  best_visit_time                      String
+  seasonality                          String
+  weather_dependency                   String
+  difficulty_level                     String
+  walking_required                     Boolean
+  stairs_required                      Boolean
+  wheelchair_access                    Boolean
+  family_friendly                      Boolean
+  guide_available                      Boolean
+  photo_spot                           Boolean
+  swim_allowed                         Boolean
+  dress_code_required                  Boolean
+  dress_code_description               String?
+  safety_notes                         String?
+  facilities                           Json? // type Facilities = { toilet: boolean; parking: boolean; food: boolean; locker: boolean };
+  travel_time_from_city_center_minutes Int?
+  combo_with                           String[]
+  dietary_options                      Json?
+  reservation_supported                Boolean      @default(false)
+  reservation_required                 Boolean      @default(false)
+  payment_methods                      String[]
+  alcohol_served                       Boolean      @default(false)
+  parking_available                    Boolean      @default(false)
+  wifi_available                       Boolean      @default(false)
+  noise_level                          String?
+  attractions                          Attraction[]
+
+  @@index([attraction_id])
+  @@map("attraction_details")
 }

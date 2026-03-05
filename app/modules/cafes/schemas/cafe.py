@@ -107,29 +107,69 @@ class TranslationIn(BaseModel):
 
 
 class CafeDetailsIn(BaseModel):
-    """Cafe category_details: same shape as Restaurant details + tea_options, coffee_styles."""
-    cuisine_types: List[str] = Field(default_factory=list)
-    meal_types: List[str] = Field(default_factory=list)
+    """Cafe category_details aligned with Prisma CafeDetails model."""
+    cafe_styles: List[str] = Field(default_factory=list)
+    food_styles: List[str] = Field(default_factory=list)
+    vibe_tags: List[str] = Field(default_factory=list)
+    suitable_for: List[str] = Field(default_factory=list)
+
     avg_spend_per_person: Optional[int] = None
+    currency: Optional[str] = None
+
+    coffee_styles: List[str] = Field(default_factory=list)
+    tea_options: List[str] = Field(default_factory=list)
+    bean_types: List[str] = Field(default_factory=list)
+    brew_methods: List[str] = Field(default_factory=list)
+    specialty_coffee: bool = False
+    non_coffee_options: bool = False
+
+    signature_items: List[str] = Field(default_factory=list)
+    signature_drinks: List[str] = Field(default_factory=list)
+    dessert_available: bool = False
+    pastry_available: bool = False
     dietary_options: Optional[Dict[str, Any]] = None
+
     reservation_supported: bool = False
     reservation_required: bool = False
+
     seating_capacity: Optional[int] = None
     indoor_seating: bool = False
     outdoor_seating: bool = False
     takeaway_available: bool = False
     delivery_available: bool = False
-    payment_methods: List[str] = Field(default_factory=list)
-    signature_dishes: List[str] = Field(default_factory=list)
-    alcohol_served: bool = False
-    parking_available: bool = False
+
+    laptop_friendly: bool = False
+    good_for_work: bool = False
+    good_for_study: bool = False
+    meeting_friendly: bool = False
+    power_outlets_available: bool = False
+    power_outlet_count: Optional[int] = None
     wifi_available: bool = False
+    wifi_speed_level: Optional[str] = None
+
+    parking_available: bool = False
+    restroom_available: bool = False
+    air_conditioned: bool = False
+    wheelchair_access: bool = False
+    smoking_allowed: bool = False
+    smoking_area_available: bool = False
+
+    alcohol_served: bool = False
+    payment_methods: List[str] = Field(default_factory=list)
+
     noise_level: Optional[str] = None
-    suitable_for: List[str] = Field(default_factory=list)
+    crowd_level: Optional[str] = None
     best_time_to_visit: Optional[str] = None
+    best_days_to_visit: List[str] = Field(default_factory=list)
+    peak_hours: Optional[str] = None
     wait_time_peak_minutes: Optional[int] = None
-    tea_options: List[str] = Field(default_factory=list)
-    coffee_styles: List[str] = Field(default_factory=list)
+
+    view_type: Optional[str] = None
+    photo_spot: bool = False
+    instagrammable: bool = False
+    natural_light_good: bool = False
+    sunrise_good: bool = False
+    sunset_good: bool = False
 
 
 # ── Menu (same structure as restaurant) ─────────────────────────────────────

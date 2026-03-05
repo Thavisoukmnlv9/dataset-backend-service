@@ -252,10 +252,6 @@ async def create_attraction(
                     "noise_level": dd.noise_level,
                 }
                 created_details = await tx.attractiondetails.create(data=details_create)
-                await tx.attraction.update(
-                    where={"id": attraction_id},
-                    data={"attractionDetailsId": created_details.id},
-                )
 
         created = await prisma.attraction.find_unique(
             where={"id": attraction_id},
@@ -323,7 +319,7 @@ def _serialize_attraction(r: Any) -> Dict[str, Any]:
         "popularity_score": r.popularity_score,
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-        "attractionDetailsId": getattr(r, "attractionDetailsId", None),
+        "attractionDetailsId": (r.details.id if r.details else None),
         "gallery": [
             {"url": path_to_upload_url(g.url), "description": g.description, "is_cover": getattr(g, "is_cover", False)}
             for g in (r.gallery or [])

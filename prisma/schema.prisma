@@ -939,11 +939,10 @@ model Attraction {
   policies     AttractionPolicy[]
   translations AttractionTranslation[]
   hours        AttractionHours?
-  details      AttractionDetails?       @relation(fields: [attractionDetailsId], references: [id])
+  details      AttractionDetails?
 
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
-  attractionDetailsId String?
 
   @@index([province, district])
   @@index([status])
@@ -1012,41 +1011,66 @@ model AttractionHours {
 }
 
 model AttractionDetails {
-  id                                   String       @id @default(uuid())
-  attraction_id                        String       @unique
-  attraction_type                      String[]
-  ownership_type                       String[]
-  entry_fee_adult                      Int?
-  entry_fee_child                      Int?
-  ticketing_type                       String
-  recommended_visit_duration_minutes   Int?
-  best_visit_time                      String
-  seasonality                          String
-  weather_dependency                   String
-  difficulty_level                     String
-  walking_required                     Boolean
-  stairs_required                      Boolean
-  wheelchair_access                    Boolean
-  family_friendly                      Boolean
-  guide_available                      Boolean
-  photo_spot                           Boolean
-  swim_allowed                         Boolean
-  dress_code_required                  Boolean
-  dress_code_description               String?
-  safety_notes                         String?
-  facilities                           Json? // type Facilities = { toilet: boolean; parking: boolean; food: boolean; locker: boolean };
-  travel_time_from_city_center_minutes Int?
-  combo_with                           String[]
-  dietary_options                      Json?
-  reservation_supported                Boolean      @default(false)
-  reservation_required                 Boolean      @default(false)
-  payment_methods                      String[]
-  alcohol_served                       Boolean      @default(false)
-  parking_available                    Boolean      @default(false)
-  wifi_available                       Boolean      @default(false)
-  noise_level                          String?
-  attractions                          Attraction[]
+  id            String     @id @default(uuid())
+  attraction_id String     @unique
 
-  @@index([attraction_id])
+  attraction_type                    String[]
+  ownership_type                     String[]
+  entry_fee_adult                    Int?
+  entry_fee_child                    Int?
+  ticketing_type                     String?
+  recommended_visit_duration_minutes Int?
+  best_visit_time                    String?
+  seasonality                        String?
+  weather_dependency                 String?
+  difficulty_level                   String?
+  walking_required                   Boolean @default(false)
+  stairs_required                    Boolean @default(false)
+  wheelchair_access                  Boolean @default(false)
+  family_friendly                    Boolean @default(false)
+  elderly_friendly                   Boolean @default(false)
+  stroller_friendly                  Boolean @default(false)
+  pet_friendly                       Boolean @default(false)
+  guide_available                    Boolean @default(false)
+  photo_spot                         Boolean @default(false)
+  swim_allowed                       Boolean @default(false)
+
+  dress_code_required    Boolean @default(false)
+  dress_code_description String?
+  safety_notes           String?
+
+  facilities Json?
+  dietary_options Json?
+
+  road_condition                         String?
+  vehicle_required                       String?
+  public_transport_available             Boolean @default(false)
+  pickup_supported                       Boolean @default(false)
+  walking_distance_from_parking_meters   Int?
+  travel_time_from_city_center_minutes   Int?
+  trail_distance_meters                  Int?
+  elevation_gain_meters                  Int?
+
+  reservation_supported  Boolean @default(false)
+  reservation_required   Boolean @default(false)
+  ticket_required        Boolean @default(false)
+  online_ticket_supported Boolean @default(false)
+  last_entry_time        String?
+  cancellation_policy_summary String?
+  refund_policy_summary  String?
+
+  payment_methods   String[]
+  parking_available Boolean @default(false)
+  wifi_available    Boolean @default(false)
+  alcohol_served    Boolean @default(false)
+  noise_level       String?
+  crowd_level       String?
+
+  highlight_points    String[]
+  activities_available String[]
+  combo_with          String[]
+
+  attraction Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
   @@map("attraction_details")
 }

@@ -185,6 +185,12 @@ async def create_attraction_route(request: Request, admin_user=Depends(get_admin
     if "data" in form_dict and not _is_upload_file(form_dict.get("data")):
         data_str = form_dict["data"]
         payload = json.loads(data_str)
+        if isinstance(payload, dict) and "data" in payload and isinstance(payload["data"], dict):
+            inner = payload["data"]
+            if "attraction" in inner and isinstance(inner["attraction"], dict):
+                payload = inner["attraction"]
+            else:
+                payload = inner
         cover_file, gallery_ordered = _collect_files_from_form(form)
     else:
         payload = _parse_flat_form(form_dict)

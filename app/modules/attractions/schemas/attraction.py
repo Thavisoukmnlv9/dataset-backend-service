@@ -97,7 +97,6 @@ class AttractionDetailsIn(BaseModel):
     dress_code_description: Optional[str] = None
     safety_notes: Optional[str] = None
     facilities: Optional[Dict[str, Any]] = None
-    dietary_options: Optional[Dict[str, Any]] = None
     road_condition: Optional[str] = None
     vehicle_required: Optional[str] = None
     public_transport_available: bool = False

@@ -226,7 +226,6 @@ async def update_attraction(
                 "dress_code_description": dd.dress_code_description,
                 "safety_notes": dd.safety_notes,
                 "facilities": PrismaJson(dd.facilities) if dd.facilities is not None else None,
-                "dietary_options": PrismaJson(dd.dietary_options) if dd.dietary_options is not None else None,
                 "road_condition": dd.road_condition,
                 "vehicle_required": dd.vehicle_required,
                 "public_transport_available": dd.public_transport_available,

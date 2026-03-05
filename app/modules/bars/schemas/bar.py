@@ -169,6 +169,63 @@ class CategoryDetailsIn(BaseModel):
     wait_time_peak_minutes: Optional[int] = None
 
 
+# BarDetails: bar-specific details aligned with Prisma BarDetails model
+class BarDetailsIn(BaseModel):
+    bar_types: List[str] = Field(default_factory=list)
+    vibe_tags: List[str] = Field(default_factory=list)
+    music_types: List[str] = Field(default_factory=list)
+    entertainment_types: List[str] = Field(default_factory=list)
+    crowd_type: List[str] = Field(default_factory=list)
+    avg_spend_per_person: Optional[int] = None
+    currency: Optional[str] = None
+    drink_categories: List[str] = Field(default_factory=list)
+    signature_drinks: List[str] = Field(default_factory=list)
+    food_available: bool = False
+    food_style: List[str] = Field(default_factory=list)
+    non_alcoholic_options: bool = False
+    reservation_supported: bool = False
+    reservation_required: bool = False
+    guestlist_supported: bool = False
+    table_booking_supported: bool = False
+    entry_fee: Optional[int] = None
+    minimum_spend: Optional[int] = None
+    table_minimum_spend: Optional[int] = None
+    age_restriction_min: Optional[int] = None
+    id_check_required: bool = False
+    dress_code_required: bool = False
+    dress_code_description: Optional[str] = None
+    seating_capacity: Optional[int] = None
+    indoor_seating: bool = False
+    outdoor_seating: bool = False
+    private_room_available: bool = False
+    dance_floor: bool = False
+    standing_area: bool = False
+    parking_available: bool = False
+    wifi_available: bool = False
+    wheelchair_access: bool = False
+    air_conditioned: bool = False
+    toilet_available: bool = False
+    smoking_allowed: bool = False
+    smoking_area_available: bool = False
+    shisha_available: bool = False
+    alcohol_served: bool = True
+    payment_methods: List[str] = Field(default_factory=list)
+    happy_hour_supported: bool = False
+    happy_hour_notes: Optional[str] = None
+    best_time_to_visit: Optional[str] = None
+    best_days_to_visit: List[str] = Field(default_factory=list)
+    peak_hours: Optional[str] = None
+    wait_time_peak_minutes: Optional[int] = None
+    last_order_time: Optional[str] = None
+    queue_expected: bool = False
+    queue_peak_minutes: Optional[int] = None
+    view_type: Optional[str] = None
+    sunset_good: bool = False
+    photo_spot: bool = False
+    suitable_for: List[str] = Field(default_factory=list)
+    dietary_options: Optional[Dict[str, Any]] = None
+
+
 # ── Main bar payload ───────────────────────────────────────────────────────
 
 class BarCreate(BaseModel):
@@ -213,7 +270,7 @@ class BarCreate(BaseModel):
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
     menu: Optional[MenuIn] = None
-    category_details: Optional[CategoryDetailsIn] = None
+    category_details: Optional[BarDetailsIn] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -279,7 +336,7 @@ class BarUpdate(BaseModel):
     policies: Optional[List[PolicyIn]] = None
     translations: Optional[Dict[str, TranslationIn]] = None
     menu: Optional[MenuIn] = None
-    category_details: Optional[CategoryDetailsIn] = None
+    category_details: Optional[BarDetailsIn] = None
 
 
 class BarFilters(BaseModel):

@@ -1,4 +1,7 @@
-"""Get a single bar by ID. Uses path_to_upload_url for full image URLs."""
+"""Get a single bar by ID. Uses path_to_upload_url for full image URLs.
+
+Response includes category_details (BarDetails shape) when present.
+"""
 import logging
 from typing import Any, Dict
 

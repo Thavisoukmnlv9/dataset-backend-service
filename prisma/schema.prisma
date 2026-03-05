@@ -562,31 +562,73 @@ model CafeGalleryImage {
 }
 
 model CafeDetails {
-  id                     String   @id @default(uuid())
-  cafe_id                String   @unique
-  cuisine_types          String[]
-  meal_types             String[]
-  avg_spend_per_person   Int?
-  dietary_options        Json?
-  reservation_supported  Boolean  @default(false)
-  reservation_required   Boolean  @default(false)
-  seating_capacity       Int?
-  indoor_seating         Boolean  @default(false)
-  outdoor_seating        Boolean  @default(false)
-  takeaway_available     Boolean  @default(false)
-  delivery_available     Boolean  @default(false)
-  payment_methods        String[]
-  signature_dishes       String[]
-  alcohol_served         Boolean  @default(false)
-  parking_available      Boolean  @default(false)
-  wifi_available         Boolean  @default(false)
-  noise_level            String?
-  suitable_for           String[]
-  best_time_to_visit     String?
-  wait_time_peak_minutes Int?
-  tea_options            String[]
-  coffee_styles          String[]
-  cafe                   Cafe     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  id                       String   @id @default(uuid())
+  cafe_id                  String   @unique
+
+  cafe_styles              String[]
+  food_styles              String[]
+  vibe_tags                String[]
+  suitable_for             String[]
+
+  avg_spend_per_person     Int?
+  currency                 String?
+
+  coffee_styles            String[]
+  tea_options              String[]
+  bean_types               String[]
+  brew_methods             String[]
+  specialty_coffee         Boolean  @default(false)
+  non_coffee_options       Boolean  @default(false)
+
+  signature_items          String[]
+  signature_drinks         String[]
+  dessert_available        Boolean  @default(false)
+  pastry_available         Boolean  @default(false)
+  dietary_options          Json?
+
+  reservation_supported    Boolean  @default(false)
+  reservation_required     Boolean  @default(false)
+
+  seating_capacity         Int?
+  indoor_seating           Boolean  @default(false)
+  outdoor_seating          Boolean  @default(false)
+  takeaway_available       Boolean  @default(false)
+  delivery_available       Boolean  @default(false)
+
+  laptop_friendly          Boolean  @default(false)
+  good_for_work            Boolean  @default(false)
+  good_for_study           Boolean  @default(false)
+  meeting_friendly         Boolean  @default(false)
+  power_outlets_available  Boolean  @default(false)
+  power_outlet_count       Int?
+  wifi_available           Boolean  @default(false)
+  wifi_speed_level         String?
+
+  parking_available        Boolean  @default(false)
+  restroom_available       Boolean  @default(false)
+  air_conditioned          Boolean  @default(false)
+  wheelchair_access        Boolean  @default(false)
+  smoking_allowed          Boolean  @default(false)
+  smoking_area_available   Boolean  @default(false)
+
+  alcohol_served           Boolean  @default(false)
+  payment_methods          String[]
+
+  noise_level              String?
+  crowd_level              String?
+  best_time_to_visit       String?
+  best_days_to_visit       String[]
+  peak_hours               String?
+  wait_time_peak_minutes   Int?
+
+  view_type                String?
+  photo_spot               Boolean  @default(false)
+  instagrammable           Boolean  @default(false)
+  natural_light_good       Boolean  @default(false)
+  sunrise_good             Boolean  @default(false)
+  sunset_good              Boolean  @default(false)
+
+  cafe                     Cafe     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@index([cafe_id])
   @@map("cafe_details")
@@ -863,31 +905,75 @@ model BarMenuItem {
 }
 
 model BarDetails {
-  id                     String   @id @default(uuid())
-  bar_id                 String   @unique
-  cuisine_types          String[]
-  meal_types             String[]
-  avg_spend_per_person   Int?
-  dietary_options        Json?
-  reservation_supported  Boolean  @default(false)
-  reservation_required   Boolean  @default(false)
-  seating_capacity       Int?
-  indoor_seating         Boolean  @default(false)
-  outdoor_seating        Boolean  @default(false)
-  takeaway_available     Boolean  @default(false)
-  delivery_available     Boolean  @default(false)
-  payment_methods        String[]
-  signature_dishes       String[]
-  alcohol_served         Boolean  @default(false)
-  parking_available      Boolean  @default(false)
-  wifi_available         Boolean  @default(false)
-  noise_level            String?
-  suitable_for           String[]
-  best_time_to_visit     String?
-  wait_time_peak_minutes Int?
-  bar                    Bar      @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+  id                    String   @id @default(uuid())
+  bar_id                String   @unique
 
-  @@index([bar_id])
+  bar_types             String[]
+  vibe_tags             String[]
+  music_types           String[]
+  entertainment_types   String[]
+  crowd_type            String[]
+
+  avg_spend_per_person  Int?
+  currency              String?
+
+  drink_categories      String[]
+  signature_drinks      String[]
+  food_available        Boolean  @default(false)
+  food_style            String[]
+  non_alcoholic_options Boolean  @default(false)
+
+  reservation_supported Boolean  @default(false)
+  reservation_required  Boolean  @default(false)
+  guestlist_supported   Boolean  @default(false)
+  table_booking_supported Boolean @default(false)
+
+  entry_fee             Int?
+  minimum_spend         Int?
+  table_minimum_spend   Int?
+
+  age_restriction_min   Int?
+  id_check_required     Boolean  @default(false)
+  dress_code_required   Boolean  @default(false)
+  dress_code_description String?
+
+  seating_capacity      Int?
+  indoor_seating        Boolean  @default(false)
+  outdoor_seating       Boolean  @default(false)
+  private_room_available Boolean @default(false)
+  dance_floor           Boolean  @default(false)
+  standing_area         Boolean  @default(false)
+
+  parking_available     Boolean  @default(false)
+  wifi_available        Boolean  @default(false)
+  wheelchair_access     Boolean  @default(false)
+  air_conditioned       Boolean  @default(false)
+  toilet_available      Boolean  @default(false)
+
+  smoking_allowed       Boolean  @default(false)
+  smoking_area_available Boolean @default(false)
+  shisha_available      Boolean  @default(false)
+
+  alcohol_served        Boolean  @default(true)
+  payment_methods       String[]
+
+  happy_hour_supported  Boolean  @default(false)
+  happy_hour_notes      String?
+  best_time_to_visit    String?
+  best_days_to_visit    String[]
+  peak_hours            String?
+  wait_time_peak_minutes Int?
+  last_order_time       String?
+  queue_expected        Boolean  @default(false)
+  queue_peak_minutes    Int?
+
+  view_type             String?
+  sunset_good           Boolean  @default(false)
+  photo_spot            Boolean  @default(false)
+  suitable_for          String[]
+  dietary_options       Json?
+  bar                   Bar      @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
   @@map("bar_details")
 }
 

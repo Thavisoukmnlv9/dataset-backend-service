@@ -10,6 +10,7 @@ from app.shared.utils.responses.response import create_list_response
 from app.shared.utils.upload_urls import path_to_upload_url
 
 from app.modules.bars.schemas.bar import BarFilters
+from app.modules.bars.services.create import _serialize_details
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ def _serialize_bar_for_list(r: Any) -> Dict[str, Any]:
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         "gallery": [{"url": path_to_upload_url(g.url), "description": g.description, "is_cover": getattr(g, "is_cover", False)} for g in (r.gallery or [])],
         "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
+        "category_details": _serialize_details(r.details) if r.details else None,
     }
 
 
@@ -93,7 +95,7 @@ async def get_bars(
             order=order,
             skip=pagination.skip,
             take=pagination.limit,
-            include={"gallery": True, "tags": True},
+            include={"gallery": True, "tags": True, "details": True},
         )
         total = await prisma.bar.count(where=where)
         serialized = [_serialize_bar_for_list(r) for r in items]

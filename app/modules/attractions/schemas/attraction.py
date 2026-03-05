@@ -12,7 +12,6 @@ class ListingStatusEnum(str, Enum):
     DRAFT = "DRAFT"
     ARCHIVED = "ARCHIVED"
 
-
 class PriceBandEnum(str, Enum):
     BUDGET = "BUDGET"
     LOW = "LOW"
@@ -21,12 +20,10 @@ class PriceBandEnum(str, Enum):
     PREMIUM = "PREMIUM"
     LUXURY = "LUXURY"
 
-
 class VerificationStatusEnum(str, Enum):
     PENDING = "PENDING"
     VERIFIED = "VERIFIED"
     REJECTED = "REJECTED"
-
 
 class PolicyTypeEnum(str, Enum):
     CANCELLATION = "CANCELLATION"
@@ -34,9 +31,6 @@ class PolicyTypeEnum(str, Enum):
     RESERVATION = "RESERVATION"
     HOUSE_RULES = "HOUSE_RULES"
     OTHER = "OTHER"
-
-
-# ── Nested / related ───────────────────────────────────────────────────────
 
 class GalleryImageIn(BaseModel):
     url: Optional[str] = None

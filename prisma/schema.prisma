@@ -50,7 +50,7 @@ model User {
   updated_at     DateTime  @updatedAt
   deleted_at     DateTime?
   // Relations
-  role           String   @default("STAFF")
+  role           String    @default("STAFF")
   banned         Boolean   @default(false)
   ban_reason     String?   @db.Text
   ban_expires    DateTime?
@@ -209,11 +209,11 @@ model RateLimit {
 }
 
 model Restaurant {
-  id       String          @id @default(uuid())
-  category String          @default("RESTAURANT")
+  id       String @id @default(uuid())
+  category String @default("RESTAURANT")
   name     String
-  slug     String          @unique
-  status   String          @default("ACTIVE")
+  slug     String @unique
+  status   String @default("ACTIVE")
 
   // Vendor / contact
   vendor_name         String?
@@ -411,15 +411,14 @@ model RestaurantDetails {
   @@map("restaurant_details")
 }
 
-
 model Cafe {
-  id           String           @id @default(uuid())
-  listing_id   String?          @unique @db.VarChar(50)
-  category     String?          @default("CAFE")
-  sub_category String?          @db.VarChar(50)
+  id           String  @id @default(uuid())
+  listing_id   String? @unique @db.VarChar(50)
+  category     String? @default("CAFE")
+  sub_category String? @db.VarChar(50)
   name         String
-  slug         String?          @unique
-  status       String?          @default("ACTIVE")
+  slug         String? @unique
+  status       String? @default("ACTIVE")
 
   vendor_name         String?
   contact_phone       String?
@@ -439,7 +438,7 @@ model Cafe {
   longitude    Float?
 
   price_band String?
-  currency   String?    @db.VarChar(10)
+  currency   String? @db.VarChar(10)
   min_price  Int?
   max_price  Int?
 
@@ -566,11 +565,11 @@ model CafeDetails {
 }
 
 model CafeTag {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   cafe_id   String
   tag_type  String?
   tag_value String?
-  cafe      Cafe     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  cafe      Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@index([cafe_id])
   @@index([tag_type, tag_value])
@@ -641,11 +640,11 @@ model CafeMenuItem {
 }
 
 model CafePolicy {
-  id          String      @id @default(uuid())
+  id          String  @id @default(uuid())
   cafe_id     String
   policy_type String?
-  policy_text String?     @db.Text
-  cafe        Cafe        @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  policy_text String? @db.Text
+  cafe        Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
 
   @@index([cafe_id])
   @@index([policy_type])
@@ -751,11 +750,11 @@ model BarTag {
 }
 
 model BarPolicy {
-  id          String      @id @default(uuid())
+  id          String  @id @default(uuid())
   bar_id      String
   policy_type String?
   policy_text String?
-  bar         Bar         @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+  bar         Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
 
   @@index([bar_id])
   @@index([policy_type])
@@ -992,11 +991,11 @@ model AttractionTag {
 }
 
 model AttractionPolicy {
-  id            String      @id @default(uuid())
+  id            String     @id @default(uuid())
   attraction_id String
   policy_type   String?
   policy_text   String?
-  attraction    Attraction  @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
 
   @@index([attraction_id])
   @@index([policy_type])
@@ -1179,7 +1178,7 @@ model SouvenirTag {
 }
 
 model SouvenirPolicy {
-  id          String      @id @default(uuid())
+  id          String  @id @default(uuid())
   souvenir_id String
   policy_type String?
   policy_text String?

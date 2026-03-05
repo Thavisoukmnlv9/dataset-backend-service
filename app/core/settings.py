@@ -42,6 +42,7 @@ SERVICES_TO_LOAD = [
     ServiceConfig(name="Cafes", import_path="app.modules.cafes.api.routes", router_name="router"),
     ServiceConfig(name="Bars", import_path="app.modules.bars.api.routes", router_name="router"),
     ServiceConfig(name="Attractions", import_path="app.modules.attractions.api.routes", router_name="router"),
+    ServiceConfig(name="Souvenirs", import_path="app.modules.souvenirs.api.routes", router_name="router"),
 ]
 
 API_ENDPOINTS = {
@@ -51,6 +52,7 @@ API_ENDPOINTS = {
     "cafes": "/api/v1/cafes",
     "bars": "/api/v1/bars",
     "attractions": "/api/v1/attractions",
+    "souvenirs": "/api/v1/souvenirs",
 }
 
 app_settings = AppSettings()

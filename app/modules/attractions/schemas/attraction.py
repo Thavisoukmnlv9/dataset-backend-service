@@ -87,6 +87,9 @@ class AttractionDetailsIn(BaseModel):
     stairs_required: bool = False
     wheelchair_access: bool = False
     family_friendly: bool = False
+    elderly_friendly: bool = False
+    stroller_friendly: bool = False
+    pet_friendly: bool = False
     guide_available: bool = False
     photo_spot: bool = False
     swim_allowed: bool = False
@@ -94,16 +97,31 @@ class AttractionDetailsIn(BaseModel):
     dress_code_description: Optional[str] = None
     safety_notes: Optional[str] = None
     facilities: Optional[Dict[str, Any]] = None
-    travel_time_from_city_center_minutes: Optional[int] = None
-    combo_with: List[str] = Field(default_factory=list)
     dietary_options: Optional[Dict[str, Any]] = None
+    road_condition: Optional[str] = None
+    vehicle_required: Optional[str] = None
+    public_transport_available: bool = False
+    pickup_supported: bool = False
+    walking_distance_from_parking_meters: Optional[int] = None
+    travel_time_from_city_center_minutes: Optional[int] = None
+    trail_distance_meters: Optional[int] = None
+    elevation_gain_meters: Optional[int] = None
     reservation_supported: bool = False
     reservation_required: bool = False
+    ticket_required: bool = False
+    online_ticket_supported: bool = False
+    last_entry_time: Optional[str] = None
+    cancellation_policy_summary: Optional[str] = None
+    refund_policy_summary: Optional[str] = None
     payment_methods: List[str] = Field(default_factory=list)
-    alcohol_served: bool = False
     parking_available: bool = False
     wifi_available: bool = False
+    alcohol_served: bool = False
     noise_level: Optional[str] = None
+    crowd_level: Optional[str] = None
+    highlight_points: List[str] = Field(default_factory=list)
+    activities_available: List[str] = Field(default_factory=list)
+    combo_with: List[str] = Field(default_factory=list)
 
 
 # ── Main attraction payload ─────────────────────────────────────────────────

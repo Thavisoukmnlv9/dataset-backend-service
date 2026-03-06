@@ -2,7 +2,7 @@
 import logging
 import re
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, status, UploadFile
 
@@ -15,6 +15,7 @@ from app.shared.services.infrastructure.storage import storage_service
 from app.modules.souvenirs.schemas.souvenir import (
     SouvenirCreate,
     GalleryImageIn,
+    SouvenirProductImageIn,
 )
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,27 @@ async def _upload_gallery_files(files: List[UploadFile]) -> List[GalleryImageIn]
             if path:
                 out.append(GalleryImageIn(url=path, description=None))
     return out
+
+
+async def _upload_product_image(file: UploadFile) -> Optional[str]:
+    if not file or not getattr(file, "filename", None):
+        return None
+    try:
+        if hasattr(file, "file") and file.file is not None and hasattr(file.file, "seek"):
+            file.file.seek(0)
+        result = await storage_service.upload_file(file, "souvenirs/products")
+    except Exception as e:
+        logger.warning("Product image upload failed: %s", e)
+        return None
+    if not result.success or not result.data:
+        return None
+    object_name = result.data.get("object_name")
+    if object_name:
+        return _to_stored_path(object_name)
+    url = result.data.get("url")
+    if url and isinstance(url, str) and url.strip().startswith("/"):
+        return url.strip()
+    return None
 
 
 def _serialize_hours(h: Any) -> Optional[Dict[str, Any]]:
@@ -285,6 +307,7 @@ async def create_souvenir(
     data: SouvenirCreate,
     cover_image_file: Optional[UploadFile] = None,
     gallery_files: Optional[List[UploadFile]] = None,
+    product_image_files: Optional[Dict[Tuple[int, int], UploadFile]] = None,
 ) -> Dict[str, Any]:
     cover_url = await _upload_cover_image(cover_image_file)
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
@@ -309,6 +332,23 @@ async def create_souvenir(
                 if getattr(g, "is_cover", False) and g.url:
                     cover_url = g.url
                     break
+
+    if product_image_files and data.products:
+        for (prod_idx, img_idx), file in sorted(product_image_files.items()):
+            if prod_idx >= len(data.products):
+                continue
+            product = data.products[prod_idx]
+            path = await _upload_product_image(file)
+            if not path:
+                continue
+            while len(product.images) <= img_idx:
+                product.images.append(SouvenirProductImageIn(url="", description=None, is_cover=False))
+            existing = product.images[img_idx]
+            product.images[img_idx] = SouvenirProductImageIn(
+                url=path,
+                description=getattr(existing, "description", None),
+                is_cover=getattr(existing, "is_cover", False),
+            )
 
     try:
         async with prisma.tx() as tx:

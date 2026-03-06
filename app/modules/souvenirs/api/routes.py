@@ -27,6 +27,7 @@ _FORM_JSON_KEYS = frozenset({
 _GALLERY_FILE_PATTERN = re.compile(r"^gallery_urls\.url_file\[(\d+)\]$")
 _GALLERY_FILES_IMAGE_PATTERN = re.compile(r"^gallery_files\[(\d+)\]\.image$")
 _GALLERY_FILES_FILE_PATTERN = re.compile(r"^gallery_files\[(\d+)\]\.file$")
+_PRODUCT_IMAGE_PATTERN = re.compile(r"^products\[(\d+)\]\.images\[(\d+)\]\.image_file$")
 
 
 def _is_upload_file(value: Any) -> bool:
@@ -94,9 +95,10 @@ def _parse_flat_form(form: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 
-def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile], List[UploadFile]]:
+def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile], List[UploadFile], Dict[Tuple[int, int], Any]]:
     cover_file: Optional[UploadFile] = None
     gallery_by_index: Dict[int, UploadFile] = {}
+    product_image_files: Dict[Tuple[int, int], Any] = {}
     _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile"})
     gallery_files_list: List[UploadFile] = []
     for key, value in form.items():
@@ -123,8 +125,12 @@ def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile]
             m = _GALLERY_FILES_FILE_PATTERN.match(key)
             if m:
                 gallery_by_index[int(m.group(1))] = value
+                continue
+            m = _PRODUCT_IMAGE_PATTERN.match(key)
+            if m:
+                product_image_files[(int(m.group(1)), int(m.group(2)))] = value
     gallery_ordered = gallery_files_list if gallery_files_list else [gallery_by_index[i] for i in sorted(gallery_by_index)]
-    return cover_file, gallery_ordered
+    return cover_file, gallery_ordered, product_image_files
 
 
 @router.get("", summary="List souvenirs")
@@ -157,7 +163,7 @@ async def get_souvenir_route(souvenir_id: str, _user=Depends(get_current_active_
 @router.post(
     "",
     summary="Create souvenir (multipart/form-data)",
-    description="Create souvenir. Send multipart/form-data: either (1) data=JSON string + file fields, or (2) flat form fields + JSON strings for gallery_urls, tags, hours, details, products, etc. + file fields: cover_image_file, gallery_files.",
+    description="Create souvenir. Send multipart/form-data: either (1) data=JSON string + file fields, or (2) flat form fields + JSON strings for gallery_urls, tags, hours, details, products, etc. + file fields: cover_image_file, gallery_files, products[i].images[j].image_file for product images.",
 )
 async def create_souvenir_route(request: Request, admin_user=Depends(get_admin_user)):
     from app.modules.souvenirs.services.create import create_souvenir as _create
@@ -166,23 +172,24 @@ async def create_souvenir_route(request: Request, admin_user=Depends(get_admin_u
     if "application/json" in content_type:
         body = await request.json()
         payload = body
-        cover_file, gallery_files = None, []
+        cover_file, gallery_files, product_image_files = None, [], {}
     else:
         form = await request.form()
         form_dict = dict(form)
         if "data" in form_dict and not _is_upload_file(form_dict.get("data")):
             data_str = form_dict["data"]
             payload = json.loads(data_str)
-            cover_file, gallery_files = _collect_files_from_form(form_dict)
+            cover_file, gallery_files, product_image_files = _collect_files_from_form(form_dict)
         else:
             payload = _parse_flat_form(form_dict)
-            cover_file, gallery_files = _collect_files_from_form(form_dict)
+            cover_file, gallery_files, product_image_files = _collect_files_from_form(form_dict)
 
     souvenir_data = SouvenirCreate.model_validate(payload)
     return await _create(
         souvenir_data,
         cover_image_file=cover_file,
         gallery_files=gallery_files,
+        product_image_files=product_image_files,
     )
 
 

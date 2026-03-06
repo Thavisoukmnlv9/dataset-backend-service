@@ -97,7 +97,7 @@ def _parse_flat_form(form: Dict[str, Any]) -> Dict[str, Any]:
 def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile], List[UploadFile]]:
     cover_file: Optional[UploadFile] = None
     gallery_by_index: Dict[int, UploadFile] = {}
-    _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile", "cover_image_url"})
+    _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile"})
     gallery_files_list: List[UploadFile] = []
     for key, value in form.items():
         if key == "gallery_files" and _is_upload_file(value):

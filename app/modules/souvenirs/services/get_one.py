@@ -15,8 +15,6 @@ logger = logging.getLogger(__name__)
 def _apply_upload_urls(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data:
         return data
-    if data.get("cover_image_url"):
-        data["cover_image_url"] = path_to_upload_url(data["cover_image_url"])
     for g in data.get("gallery") or []:
         if g.get("url") is not None:
             g["url"] = path_to_upload_url(g["url"])

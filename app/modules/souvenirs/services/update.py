@@ -43,12 +43,13 @@ async def update_souvenir(
         if not existing:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Souvenir not found")
 
+        cover_url_path: Optional[str] = None
         if cover_image_file and getattr(cover_image_file, "filename", None):
             result = await storage_service.upload_file(cover_image_file, "souvenirs")
             if result.success and result.data:
                 path = _to_stored_path(result.data.get("object_name"))
                 if path:
-                    data.cover_image_url = path
+                    cover_url_path = path
         if gallery_files:
             from app.modules.souvenirs.services.create import _upload_gallery_files
             gallery_uploaded = await _upload_gallery_files(gallery_files)
@@ -110,8 +111,8 @@ async def update_souvenir(
             update_payload["walk_in_supported"] = data.walk_in_supported
         if data.languages_supported is not None:
             update_payload["languages_supported"] = [c if isinstance(c, str) else str(c) for c in data.languages_supported]
-        if data.cover_image_url is not None:
-            update_payload["cover_image_url"] = data.cover_image_url
+        if cover_url_path is not None:
+            update_payload["cover_image_url"] = cover_url_path
         if data.gallery_urls is not None:
             await prisma.souvenirgalleryimage.delete_many(where={"souvenir_id": souvenir_id})
             if data.gallery_urls:

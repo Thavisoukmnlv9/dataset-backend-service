@@ -192,7 +192,6 @@ class SouvenirCreate(BaseModel):
     booking_supported: bool = False
     walk_in_supported: bool = True
     languages_supported: List[str] = Field(default_factory=list)
-    cover_image_url: Optional[str] = None
     cover_image_file: Optional[Any] = None
     gallery_urls: List[GalleryImageIn] = Field(default_factory=list)
     gallery_files: Optional[List[GalleryFileMetadataIn]] = None
@@ -261,7 +260,6 @@ class SouvenirUpdate(BaseModel):
     booking_supported: Optional[bool] = None
     walk_in_supported: Optional[bool] = None
     languages_supported: Optional[List[str]] = None
-    cover_image_url: Optional[str] = None
     gallery_urls: Optional[List[GalleryImageIn]] = None
     rating_avg: Optional[float] = None
     rating_count: Optional[int] = None

@@ -35,7 +35,6 @@ def _serialize_souvenir_list_item(s: Any) -> Dict[str, Any]:
         "currency": s.currency,
         "min_price": s.min_price,
         "max_price": s.max_price,
-        "cover_image_url": path_to_upload_url(s.cover_image_url),
         "rating_avg": s.rating_avg,
         "rating_count": s.rating_count or 0,
         "trust_score": s.trust_score,

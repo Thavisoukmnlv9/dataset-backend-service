@@ -205,7 +205,6 @@ def _serialize_souvenir(s: Any) -> Dict[str, Any]:
         "booking_supported": s.booking_supported,
         "walk_in_supported": s.walk_in_supported,
         "languages_supported": s.languages_supported or [],
-        "cover_image_url": path_to_upload_url(s.cover_image_url),
         "gallery": [{"url": path_to_upload_url(g.url), "description": getattr(g, "description", None), "is_cover": getattr(g, "is_cover", False)} for g in (s.gallery or [])],
         "rating_avg": s.rating_avg,
         "rating_count": s.rating_count or 0,
@@ -288,8 +287,6 @@ async def create_souvenir(
     gallery_files: Optional[List[UploadFile]] = None,
 ) -> Dict[str, Any]:
     cover_url = await _upload_cover_image(cover_image_file)
-    if cover_url:
-        data.cover_image_url = cover_url
     gallery_uploaded = await _upload_gallery_files(gallery_files or [])
     if gallery_uploaded:
         metadata_list = data.gallery_files or []
@@ -307,10 +304,10 @@ async def create_souvenir(
                     data.gallery_urls[i].description = gu.description
         else:
             data.gallery_urls = gallery_uploaded
-        if not cover_url and data.cover_image_url is None:
+        if not cover_url:
             for g in data.gallery_urls:
                 if getattr(g, "is_cover", False) and g.url:
-                    data.cover_image_url = g.url
+                    cover_url = g.url
                     break
 
     try:
@@ -342,7 +339,7 @@ async def create_souvenir(
                 "booking_supported": data.booking_supported,
                 "walk_in_supported": data.walk_in_supported,
                 "languages_supported": [c if isinstance(c, str) else str(c) for c in (data.languages_supported or [])],
-                "cover_image_url": data.cover_image_url,
+                "cover_image_url": cover_url,
                 "rating_avg": data.rating_avg,
                 "rating_count": data.rating_count or 0,
                 "trust_score": data.trust_score,

@@ -150,7 +150,6 @@ class CategoryDetailsIn(BaseModel):
     cuisine_types: List[str] = Field(default_factory=list)
     meal_types: List[str] = Field(default_factory=list)
     avg_spend_per_person: Optional[int] = None
-    dietary_options: Optional[Dict[str, Any]] = None
     reservation_supported: bool = False
     reservation_required: bool = False
     seating_capacity: Optional[int] = None
@@ -223,7 +222,6 @@ class BarDetailsIn(BaseModel):
     sunset_good: bool = False
     photo_spot: bool = False
     suitable_for: List[str] = Field(default_factory=list)
-    dietary_options: Optional[Dict[str, Any]] = None
 
 
 # ── Main bar payload ───────────────────────────────────────────────────────

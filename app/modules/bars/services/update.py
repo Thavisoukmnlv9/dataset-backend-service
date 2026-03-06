@@ -223,7 +223,6 @@ async def update_bar(
                 "sunset_good": cd.sunset_good,
                 "photo_spot": cd.photo_spot,
                 "suitable_for": cd.suitable_for or [],
-                "dietary_options": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
             }
             if existing.details:
                 await prisma.bardetails.update(where={"id": existing.details.id}, data=details_payload)

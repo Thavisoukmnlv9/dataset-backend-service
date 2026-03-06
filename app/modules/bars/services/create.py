@@ -338,7 +338,6 @@ async def create_bar(
                         "sunset_good": cd.sunset_good,
                         "photo_spot": cd.photo_spot,
                         "suitable_for": cd.suitable_for or [],
-                        "dietary_options": PrismaJson(cd.dietary_options) if cd.dietary_options is not None else None,
                     }
                 }
 
@@ -514,5 +513,4 @@ def _serialize_details(d: Any) -> Optional[Dict[str, Any]]:
         "sunset_good": getattr(d, "sunset_good", False),
         "photo_spot": getattr(d, "photo_spot", False),
         "suitable_for": getattr(d, "suitable_for", None) or [],
-        "dietary_options": getattr(d, "dietary_options", None),
     }

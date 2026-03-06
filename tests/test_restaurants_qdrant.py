@@ -22,6 +22,18 @@ QDRANT_COLLECTION = "restaurants"
 REQUIRED_PAYLOAD_KEYS = {"id", "name", "slug", "type", "category", "status"}
 
 # Tags are stored as list of strings (tag value only)
+
+
+def get_qdrant_client_optional():
+    """Return Qdrant client or None if connection fails (e.g. Qdrant not running)."""
+    try:
+        from app.shared.qdrant_client import get_qdrant_client
+        return get_qdrant_client()
+    except Exception as e:
+        logger.warning("Qdrant client not available: %s", e)
+        return None
+
+
 def test_text_point_payload_structure(restaurants_points):
     """Points with type='text' must have tags as list of strings, gallery as list of dicts."""
     errors = []
@@ -39,13 +51,16 @@ def test_text_point_payload_structure(restaurants_points):
                     if not isinstance(t, str):
                         errors.append("%s: tags[%d] should be string, got: %s" % (p.id, i, type(t).__name__))
         # gallery: list of dicts (after url drop, at least description may be present)
-    """Return Qdrant client or None if connection fails (e.g. Qdrant not running)."""
-    try:
-        from app.shared.qdrant_client import get_qdrant_client
-        return get_qdrant_client()
-    except Exception as e:
-        logger.warning("Qdrant client not available: %s", e)
-        return None
+        gallery = payload.get("gallery")
+        if gallery is not None:
+            if not isinstance(gallery, list):
+                errors.append("%s: gallery is not a list" % p.id)
+            else:
+                for i, g in enumerate(gallery):
+                    if not isinstance(g, dict):
+                        errors.append("%s: gallery[%d] is not a dict" % (p.id, i))
+    assert not errors, "Payload structure errors: %s" % errors[:10]
+    logger.info("Text point payload structure OK (tags/gallery validated)")
 
 
 def fetch_all_points(client) -> List[Dict[str, Any]]:
@@ -140,19 +155,6 @@ def test_payload_has_required_keys(restaurants_points):
             if key not in payload:
                 missing.append((str(p.id), key))
     assert not missing, "Missing payload keys (point_id, key): %s" % missing
-
-
-def get_qdrant_client_optional():
-        gallery = payload.get("gallery")
-        if gallery is not None:
-            if not isinstance(gallery, list):
-                errors.append("%s: gallery is not a list" % p.id)
-            else:
-                for i, g in enumerate(gallery):
-                    if not isinstance(g, dict):
-                        errors.append("%s: gallery[%d] is not a dict" % (p.id, i))
-    assert not errors, "Payload structure errors: %s" % errors[:10]
-    logger.info("Text point payload structure OK (tags/gallery validated)")
 
 
 def test_payload_no_cover_image_url_or_url_in_nested(restaurants_points):

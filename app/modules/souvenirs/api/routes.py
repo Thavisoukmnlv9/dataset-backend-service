@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 
 from app.api.dependencies import get_current_active_user, get_admin_user
 from app.shared.schemas.base import PaginationParams
@@ -95,15 +95,20 @@ def _parse_flat_form(form: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 
-def _collect_files_from_form(form: Dict[str, Any]) -> Tuple[Optional[UploadFile], List[UploadFile], Dict[Tuple[int, int], Any]]:
+def _collect_files_from_form(form: Any) -> Tuple[Optional[UploadFile], List[UploadFile], Dict[Tuple[int, int], Any]]:
+    """Collect cover file, ordered gallery files (supports multiple same key), and product image files.
+    form should be the raw FormData so getlist('gallery_files') returns all entries."""
     cover_file: Optional[UploadFile] = None
     gallery_by_index: Dict[int, UploadFile] = {}
     product_image_files: Dict[Tuple[int, int], Any] = {}
     _COVER_KEYS = frozenset({"cover_image_file", "cover_image", "coverImageFile"})
+
     gallery_files_list: List[UploadFile] = []
-    for key, value in form.items():
-        if key == "gallery_files" and _is_upload_file(value):
-            gallery_files_list.append(value)
+    if hasattr(form, "getlist"):
+        for value in form.getlist("gallery_files"):
+            if _is_upload_file(value):
+                gallery_files_list.append(value)
+
     for key, value in form.items():
         if not _is_upload_file(value):
             continue
@@ -179,10 +184,10 @@ async def create_souvenir_route(request: Request, admin_user=Depends(get_admin_u
         if "data" in form_dict and not _is_upload_file(form_dict.get("data")):
             data_str = form_dict["data"]
             payload = json.loads(data_str)
-            cover_file, gallery_files, product_image_files = _collect_files_from_form(form_dict)
+            cover_file, gallery_files, product_image_files = _collect_files_from_form(form)
         else:
             payload = _parse_flat_form(form_dict)
-            cover_file, gallery_files, product_image_files = _collect_files_from_form(form_dict)
+            cover_file, gallery_files, product_image_files = _collect_files_from_form(form)
 
     souvenir_data = SouvenirCreate.model_validate(payload)
     return await _create(
@@ -196,22 +201,38 @@ async def create_souvenir_route(request: Request, admin_user=Depends(get_admin_u
 @router.put("/{souvenir_id}", summary="Update souvenir")
 async def update_souvenir_route(
     souvenir_id: str,
-    data: str = Form(..., description="JSON string of partial update (SouvenirUpdate)"),
-    cover_image_file: Optional[UploadFile] = File(None),
-    gallery_0: Optional[UploadFile] = File(None),
-    gallery_1: Optional[UploadFile] = File(None),
-    gallery_2: Optional[UploadFile] = File(None),
+    request: Request,
     admin_user=Depends(get_admin_user),
 ):
     from app.modules.souvenirs.services.update import update_souvenir as _update
 
-    payload = json.loads(data)
+    form = await request.form()
+    form_dict = dict(form)
+    data_str = form_dict.get("data")
+    if not data_str or _is_upload_file(data_str):
+        raise HTTPException(status_code=400, detail="data (JSON string) required")
+    payload = json.loads(data_str)
     update_data = SouvenirUpdate.model_validate(payload)
-    gallery_files = [f for f in [gallery_0, gallery_1, gallery_2] if f and getattr(f, "filename", None)]
+
+    cover_file: Optional[UploadFile] = None
+    gallery_files: List[UploadFile] = []
+    if hasattr(form, "getlist"):
+        gallery_files = [v for v in form.getlist("gallery_files") if _is_upload_file(v)]
+    if not gallery_files:
+        gallery_by_idx: Dict[int, UploadFile] = {}
+        for key, value in form.items():
+            if _is_upload_file(value) and key.startswith("gallery_") and key[8:].isdigit():
+                gallery_by_idx[int(key[8:])] = value
+        gallery_files = [gallery_by_idx[i] for i in sorted(gallery_by_idx)]
+    for key, value in form.items():
+        if _is_upload_file(value) and key in frozenset({"cover_image_file", "cover_image", "coverImageFile"}):
+            cover_file = value
+            break
+
     return await _update(
         souvenir_id,
         update_data,
-        cover_image_file=cover_image_file,
+        cover_image_file=cover_file,
         gallery_files=gallery_files,
     )
 

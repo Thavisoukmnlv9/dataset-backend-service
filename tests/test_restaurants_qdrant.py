@@ -21,11 +21,24 @@ QDRANT_COLLECTION = "restaurants"
 # Required top-level payload keys (after sync/create)
 REQUIRED_PAYLOAD_KEYS = {"id", "name", "slug", "type", "category", "status"}
 
-# Each tag must have tag_type and tag_value (strings)
-TAG_KEYS = {"tag_type", "tag_value"}
-
-
-def get_qdrant_client_optional():
+# Tags are stored as list of strings (tag value only)
+def test_text_point_payload_structure(restaurants_points):
+    """Points with type='text' must have tags as list of strings, gallery as list of dicts."""
+    errors = []
+    for p in restaurants_points:
+        payload = p.payload or {}
+        if payload.get("type") != "text":
+            continue
+        # tags: list of strings (tag values)
+        tags = payload.get("tags")
+        if tags is not None:
+            if not isinstance(tags, list):
+                errors.append("%s: tags is not a list" % p.id)
+            else:
+                for i, t in enumerate(tags):
+                    if not isinstance(t, str):
+                        errors.append("%s: tags[%d] should be string, got: %s" % (p.id, i, type(t).__name__))
+        # gallery: list of dicts (after url drop, at least description may be present)
     """Return Qdrant client or None if connection fails (e.g. Qdrant not running)."""
     try:
         from app.shared.qdrant_client import get_qdrant_client
@@ -129,27 +142,7 @@ def test_payload_has_required_keys(restaurants_points):
     assert not missing, "Missing payload keys (point_id, key): %s" % missing
 
 
-def test_text_point_payload_structure(restaurants_points):
-    """Points with type='text' must have tags/gallery as lists of proper objects (not empty dicts)."""
-    errors = []
-    for p in restaurants_points:
-        payload = p.payload or {}
-        if payload.get("type") != "text":
-            continue
-        # tags: list of {tag_type, tag_value}
-        tags = payload.get("tags")
-        if tags is not None:
-            if not isinstance(tags, list):
-                errors.append("%s: tags is not a list" % p.id)
-            else:
-                for i, t in enumerate(tags):
-                    if not isinstance(t, dict):
-                        errors.append("%s: tags[%d] is not a dict" % (p.id, i))
-                    elif not (TAG_KEYS <= set(t.keys())):
-                        errors.append("%s: tags[%d] missing tag_type or tag_value: %s" % (p.id, i, t))
-                    elif not t.get("tag_type") or not t.get("tag_value"):
-                        errors.append("%s: tags[%d] empty tag_type or tag_value: %s" % (p.id, i, t))
-        # gallery: list of dicts (after url drop, at least description may be present)
+def get_qdrant_client_optional():
         gallery = payload.get("gallery")
         if gallery is not None:
             if not isinstance(gallery, list):

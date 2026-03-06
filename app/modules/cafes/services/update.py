@@ -165,7 +165,7 @@ async def update_cafe(
             await prisma.cafetag.delete_many(where={"cafe_id": cafe_id})
             if data.tags:
                 await prisma.cafetag.create_many(
-                    data=[{"cafe_id": cafe_id, "tag_type": t.tag_type.value, "tag_value": t.tag_value} for t in data.tags]
+                    data=[{"cafe_id": cafe_id, "tag_type": None, "tag_value": t.tag_value} for t in data.tags]
                 )
         if data.hours is not None and data.hours.weekly_schedule:
             hours_payload: Dict[str, Any] = {"weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}

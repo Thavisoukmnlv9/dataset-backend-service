@@ -64,7 +64,6 @@ class SpiceLevelEnum(str, Enum):
 # ── Nested / related ───────────────────────────────────────────────────────
 
 class TagIn(BaseModel):
-    tag_type: TagTypeEnum
     tag_value: str
 
 
@@ -271,7 +270,7 @@ class CafeCreate(BaseModel):
     popularity_score: Optional[int] = None
     last_verified_at: Optional[datetime] = None
 
-    tags: List[Union[TagIn, dict]] = Field(default_factory=list)
+    tags: List[Union[TagIn, dict, str]] = Field(default_factory=list)
     hours: Optional[HoursIn] = None
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
@@ -306,9 +305,10 @@ class CafeCreate(BaseModel):
         normalized: List[TagIn] = []
         for t in self.tags or []:
             if isinstance(t, dict):
-                normalized.append(TagIn(**t))
+                val = t.get("tag_value") if isinstance(t.get("tag_value"), str) else (str(t) if t else "")
+                normalized.append(TagIn(tag_value=val or ""))
             elif isinstance(t, str):
-                normalized.append(TagIn(tag_type=TagTypeEnum.OTHER, tag_value=t))
+                normalized.append(TagIn(tag_value=t))
             else:
                 normalized.append(t)
         return self.model_copy(update={"tags": normalized})

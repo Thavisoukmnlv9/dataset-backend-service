@@ -145,7 +145,7 @@ async def update_souvenir(
             await prisma.souvenirtag.delete_many(where={"souvenir_id": souvenir_id})
             if data.tags:
                 await prisma.souvenirtag.create_many(
-                    data=[{"souvenir_id": souvenir_id, "tag_type": t.tag_type, "tag_value": t.tag_value or ""} for t in data.tags]
+                    data=[{"souvenir_id": souvenir_id, "tag_type": None, "tag_value": t.tag_value or ""} for t in data.tags]
                 )
         if data.hours is not None and getattr(data.hours, "weekly_schedule", None):
             hours_payload: Dict[str, Any] = {"weekly_schedule": PrismaJson(_to_prisma_weekly_schedule(data.hours))}

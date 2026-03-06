@@ -181,7 +181,7 @@ async def create_attraction(
             if data.tags:
                 create_data["tags"] = {
                     "create": [
-                        {"tag_type": t.tag_type, "tag_value": t.tag_value}
+                        {"tag_type": None, "tag_value": t.tag_value}
                         for t in data.tags
                     ]
                 }
@@ -341,7 +341,7 @@ def _serialize_attraction(r: Any) -> Dict[str, Any]:
             {"url": path_to_upload_url(g.url), "description": g.description, "is_cover": getattr(g, "is_cover", False)}
             for g in (r.gallery or [])
         ],
-        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
+        "tags": [getattr(t, "tag_value") or "" for t in (r.tags or [])],
         "policies": [{"policy_type": p.policy_type, "policy_text": p.policy_text} for p in (r.policies or [])],
         "translations": {
             t.language: {"name": t.name, "short_description": t.short_description}

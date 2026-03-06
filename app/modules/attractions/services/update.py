@@ -147,7 +147,7 @@ async def update_attraction(
                     data=[
                         {
                             "attraction_id": attraction_id,
-                            "tag_type": t.tag_type,
+                            "tag_type": None,
                             "tag_value": t.tag_value,
                         }
                         for t in data.tags

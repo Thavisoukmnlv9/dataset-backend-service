@@ -46,7 +46,7 @@ def _serialize_cafe_list_item(c: Any) -> Dict[str, Any]:
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
         "gallery": [{"url": path_to_upload_url(g.url), "description": getattr(g, "description", None), "is_cover": getattr(g, "is_cover", False)} for g in (c.gallery or [])],
-        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (c.tags or [])],
+        "tags": [getattr(t, "tag_value") or "" for t in (c.tags or [])],
     }
 
 

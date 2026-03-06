@@ -235,7 +235,7 @@ def _serialize_souvenir(s: Any) -> Dict[str, Any]:
         "popularity_score": s.popularity_score,
         "created_at": s.created_at.isoformat() if s.created_at else None,
         "updated_at": s.updated_at.isoformat() if s.updated_at else None,
-        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (s.tags or [])],
+        "tags": [getattr(t, "tag_value") or "" for t in (s.tags or [])],
         "hours": _serialize_hours(s.hours) if s.hours else None,
         "policies": [_serialize_policy(p) for p in (s.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description, "long_description": getattr(t, "long_description", None)} for t in (s.translations or [])},
@@ -402,7 +402,7 @@ async def create_souvenir(
             if data.tags:
                 create_data["tags"] = {
                     "create": [
-                        {"tag_type": t.tag_type, "tag_value": t.tag_value or ""}
+                        {"tag_type": None, "tag_value": t.tag_value or ""}
                         for t in data.tags
                     ]
                 }

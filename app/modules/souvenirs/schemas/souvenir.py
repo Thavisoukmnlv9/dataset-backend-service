@@ -39,7 +39,6 @@ class PolicyTypeEnum(str, Enum):
 # ── Nested / related ───────────────────────────────────────────────────────
 
 class TagIn(BaseModel):
-    tag_type: Optional[str] = None
     tag_value: Optional[str] = None
 
 
@@ -200,7 +199,7 @@ class SouvenirCreate(BaseModel):
     trust_score: Optional[int] = None
     quality_score: Optional[int] = None
     popularity_score: Optional[int] = None
-    tags: List[Union[TagIn, dict]] = Field(default_factory=list)
+    tags: List[Union[TagIn, dict, str]] = Field(default_factory=list)
     hours: Optional[HoursIn] = None
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
@@ -226,7 +225,8 @@ class SouvenirCreate(BaseModel):
         normalized: List[TagIn] = []
         for t in self.tags or []:
             if isinstance(t, dict):
-                normalized.append(TagIn(**{k: v for k, v in t.items() if k in ("tag_type", "tag_value")}))
+                val = t.get("tag_value") if isinstance(t.get("tag_value"), str) else (str(t) if t else "")
+                normalized.append(TagIn(tag_value=val or ""))
             elif isinstance(t, TagIn):
                 normalized.append(t)
             else:

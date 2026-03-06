@@ -77,7 +77,6 @@ class GalleryFileMetadataIn(BaseModel):
 
 
 class TagIn(BaseModel):
-    tag_type: TagTypeEnum
     tag_value: str
 
 
@@ -263,7 +262,7 @@ class BarCreate(BaseModel):
     trust_score: Optional[int] = None
     quality_score: Optional[int] = None
     popularity_score: Optional[int] = None
-    tags: List[Union[TagIn, str]] = Field(default_factory=list)
+    tags: List[Union[TagIn, dict, str]] = Field(default_factory=list)
     hours: Optional[HoursIn] = None
     policies: List[PolicyIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
@@ -290,8 +289,11 @@ class BarCreate(BaseModel):
     def normalize_tags(self) -> "BarCreate":
         normalized: List[TagIn] = []
         for t in self.tags or []:
-            if isinstance(t, str):
-                normalized.append(TagIn(tag_type=TagTypeEnum.OTHER, tag_value=t))
+            if isinstance(t, dict):
+                val = t.get("tag_value") if isinstance(t.get("tag_value"), str) else (str(t) if t else "")
+                normalized.append(TagIn(tag_value=val or ""))
+            elif isinstance(t, str):
+                normalized.append(TagIn(tag_value=t))
             else:
                 normalized.append(t)
         return self.model_copy(update={"tags": normalized})

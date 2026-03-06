@@ -218,7 +218,7 @@ async def create_bar(
             if data.tags:
                 create_data["tags"] = {
                     "create": [
-                        {"tag_type": t.tag_type.value, "tag_value": t.tag_value}
+                        {"tag_type": None, "tag_value": t.tag_value}
                         for t in data.tags
                     ]
                 }
@@ -412,7 +412,7 @@ def _serialize_bar(r: Any) -> Dict[str, Any]:
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         "gallery": [{"url": path_to_upload_url(g.url), "description": g.description, "is_cover": getattr(g, "is_cover", False)} for g in (r.gallery or [])],
-        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (r.tags or [])],
+        "tags": [getattr(t, "tag_value") or "" for t in (r.tags or [])],
         "policies": [{"policy_type": p.policy_type, "policy_text": p.policy_text} for p in (r.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description} for t in (r.translations or [])},
         "hours": {"timezone": getattr(r.hours, "timezone", None), "weekly_schedule": r.hours.weekly_schedule, "special_notes": getattr(r.hours, "special_notes", None)} if r.hours else None,

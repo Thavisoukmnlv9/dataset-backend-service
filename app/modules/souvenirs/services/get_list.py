@@ -43,7 +43,7 @@ def _serialize_souvenir_list_item(s: Any) -> Dict[str, Any]:
         "created_at": s.created_at.isoformat() if s.created_at else None,
         "updated_at": s.updated_at.isoformat() if s.updated_at else None,
         "gallery": [{"url": path_to_upload_url(g.url), "description": getattr(g, "description", None), "is_cover": getattr(g, "is_cover", False)} for g in (s.gallery or [])],
-        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (s.tags or [])],
+        "tags": [getattr(t, "tag_value") or "" for t in (s.tags or [])],
     }
 
 

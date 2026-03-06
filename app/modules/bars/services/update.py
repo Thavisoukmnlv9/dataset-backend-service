@@ -135,7 +135,7 @@ async def update_bar(
             await prisma.bartag.delete_many(where={"bar_id": bar_id})
             if data.tags:
                 await prisma.bartag.create_many(
-                    data=[{"bar_id": bar_id, "tag_type": t.tag_type.value, "tag_value": t.tag_value} for t in data.tags]
+                    data=[{"bar_id": bar_id, "tag_type": None, "tag_value": t.tag_value} for t in data.tags]
                 )
         if data.policies is not None:
             await prisma.barpolicy.delete_many(where={"bar_id": bar_id})

@@ -135,7 +135,7 @@ def _serialize_cafe(c: Any) -> Dict[str, Any]:
         "last_verified_at": c.last_verified_at.isoformat() if getattr(c, "last_verified_at", None) else None,
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
-        "tags": [{"tag_type": t.tag_type, "tag_value": t.tag_value} for t in (c.tags or [])],
+        "tags": [getattr(t, "tag_value") or "" for t in (c.tags or [])],
         "hours": _serialize_hours(c.hours) if c.hours else None,
         "policies": [_serialize_policy(p) for p in (c.policies or [])],
         "translations": {t.language: {"name": t.name, "short_description": t.short_description, "long_description": getattr(t, "long_description", None)} for t in (c.translations or [])},
@@ -394,7 +394,7 @@ async def create_cafe(
                 create_data["gallery"] = {"create": gallery_list}
             if data.tags:
                 create_data["tags"] = {
-                    "create": [{"tag_type": t.tag_type.value, "tag_value": t.tag_value} for t in data.tags]
+                    "create": [{"tag_type": None, "tag_value": t.tag_value} for t in data.tags]
                 }
             if data.hours and getattr(data.hours, "weekly_schedule", None):
                 hours_payload: Dict[str, Any] = {

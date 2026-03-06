@@ -138,7 +138,7 @@ async def update_restaurant(
             await prisma.restauranttag.delete_many(where={"restaurant_id": restaurant_id})
             if data.tags:
                 await prisma.restauranttag.create_many(
-                    data=[{"restaurant_id": restaurant_id, "tag_type": t.tag_type.value, "tag_value": t.tag_value} for t in data.tags]
+                    data=[{"restaurant_id": restaurant_id, "tag_type": "OTHER", "tag_value": t.tag_value} for t in data.tags]
                 )
         if data.policies is not None:
             await prisma.restaurantpolicy.delete_many(where={"restaurant_id": restaurant_id})
@@ -230,7 +230,7 @@ async def update_restaurant(
                     updated.country or "",
                 ]
                 for t in updated.tags or []:
-                    parts.append(f"{t.tag_type}: {t.tag_value}")
+                    parts.append(getattr(t, "tag_value") or "")
                 if updated.menu and updated.menu.sections:
                     for s in updated.menu.sections:
                         parts.append(s.name)

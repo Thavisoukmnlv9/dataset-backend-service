@@ -125,6 +125,105 @@ def _to_prisma_weekly_schedule(hours: Optional[Any]) -> Any:
     return {k: v.model_dump() if hasattr(v, "model_dump") else v for k, v in hours.weekly_schedule.items()}
 
 
+def _filled(*values: Any) -> int:
+    """Return 1 if any value is non-empty (and not None), else 0."""
+    for v in values:
+        if v is None:
+            continue
+        if isinstance(v, (str, list, dict)) and not v:
+            continue
+        if isinstance(v, str) and not v.strip():
+            continue
+        return 1
+    return 0
+
+
+def _compute_attraction_completeness(r: Any) -> Dict[str, Any]:
+    """
+    Compute completeness percent from draft info, AttractionGalleryImage, and Attraction fields.
+    Returns a dict suitable for process_result with percent and breakdown.
+    """
+    if not r:
+        return {"percent": 0, "draft_info": {"filled": 0, "total": 8, "percent": 0}, "gallery": {"has_cover": False, "count": 0, "percent": 0}, "attraction_fields": {"filled": 0, "total": 12, "percent": 0}}
+
+    # Draft info (AttractionCreateDraft fields): 8 fields, weight 25%
+    name = getattr(r, "name", None) or ""
+    country = getattr(r, "country", None)
+    province = getattr(r, "province", None)
+    district = getattr(r, "district", None)
+    village = getattr(r, "village", None)
+    contact_phone = getattr(r, "contact_phone", None)
+    lat = getattr(r, "latitude", None)
+    lng = getattr(r, "longitude", None)
+    draft_total = 8
+    draft_filled = (
+        _filled(name)
+        + _filled(country)
+        + _filled(province)
+        + _filled(district)
+        + _filled(village)
+        + _filled(contact_phone)
+        + (1 if lat is not None and not (isinstance(lat, float) and lat != lat) else 0)
+        + (1 if lng is not None and not (isinstance(lng, float) and lng != lng) else 0)
+    )
+    draft_percent = round((draft_filled / draft_total) * 100) if draft_total else 0
+
+    # Gallery: cover + at least one image, weight 25%
+    cover_url = getattr(r, "cover_image_url", None)
+    gallery = getattr(r, "gallery", None) or []
+    gallery_count = len(gallery) if isinstance(gallery, list) else 0
+    has_cover = bool(cover_url and str(cover_url).strip()) or any(getattr(g, "is_cover", False) for g in gallery)
+    if has_cover and gallery_count > 0:
+        gallery_percent = 100
+    elif has_cover or gallery_count > 0:
+        gallery_percent = 50
+    else:
+        gallery_percent = 0
+
+    # Attraction fields (key fields beyond draft): weight 50%
+    category = getattr(r, "category", None)
+    short_description = getattr(r, "short_description", None)
+    long_description = getattr(r, "long_description", None)
+    address_text = getattr(r, "address_text", None)
+    price_band = getattr(r, "price_band", None)
+    min_price = getattr(r, "min_price", None)
+    max_price = getattr(r, "max_price", None)
+    tags = getattr(r, "tags", None) or []
+    tag_count = len(tags) if isinstance(tags, list) else 0
+    policies = getattr(r, "policies", None) or []
+    policy_count = len(policies) if isinstance(policies, list) else 0
+    hours = getattr(r, "hours", None)
+    details = getattr(r, "details", None)
+    translations = getattr(r, "translations", None) or []
+    trans_count = len(translations) if isinstance(translations, list) else 0
+
+    attr_total = 12
+    attr_filled = (
+        _filled(category)
+        + _filled(short_description)
+        + _filled(long_description)
+        + _filled(address_text)
+        + _filled(price_band)
+        + (1 if min_price is not None or max_price is not None else 0)
+        + (1 if tag_count > 0 else 0)
+        + (1 if policy_count > 0 else 0)
+        + (1 if hours else 0)
+        + (1 if details else 0)
+        + (1 if trans_count > 0 else 0)
+        + (1 if has_cover or gallery_count > 0 else 0)
+    )
+    attr_percent = round((attr_filled / attr_total) * 100) if attr_total else 0
+
+    overall = round(draft_percent * 0.25 + gallery_percent * 0.25 + attr_percent * 0.50)
+
+    return {
+        "percent": min(100, overall),
+        "draft_info": {"filled": draft_filled, "total": draft_total, "percent": draft_percent},
+        "gallery": {"has_cover": has_cover, "count": gallery_count, "percent": gallery_percent},
+        "attraction_fields": {"filled": attr_filled, "total": attr_total, "percent": attr_percent},
+    }
+
+
 async def create_attraction(
     data: AttractionCreate,
     cover_image_file: Optional[UploadFile] = None,
@@ -374,7 +473,7 @@ async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]
             created = await tx.attraction.create(data=create_data)
             attraction_id = created.id
 
-            await tx.attractionprocess.create(
+            process_created = await tx.attractionprocess.create(
                 data={
                     "attraction_id": attraction_id,
                     "process_type": "DRAFT_CREATED",
@@ -382,11 +481,23 @@ async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]
                     "process_result": None,
                 }
             )
+            process_id = getattr(process_created, "id", None)
 
         full = await prisma.attraction.find_unique(
             where={"id": attraction_id},
             include={"gallery": True, "tags": True, "details": True, "processes": True},
         )
+        if full and process_id:
+            process_result = _compute_attraction_completeness(full)
+            await prisma.attractionprocess.update(
+                where={"id": process_id},
+                data={"process_result": PrismaJson(process_result)},
+            )
+            # Re-fetch so response includes updated process_result
+            full = await prisma.attraction.find_unique(
+                where={"id": attraction_id},
+                include={"gallery": True, "tags": True, "details": True, "processes": True},
+            )
         payload = _serialize_attraction(full) if full else {"id": attraction_id}
         return create_success_response(
             message="Attraction created successfully",

@@ -36,6 +36,7 @@ async def get_attraction(attraction_id: str) -> Dict[str, Any]:
                 "translations": True,
                 "hours": True,
                 "details": True,
+                "processes": True,
             },
         )
         if not r:

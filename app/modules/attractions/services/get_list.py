@@ -52,6 +52,17 @@ def _serialize_attraction_for_list(r: Any) -> Dict[str, Any]:
             for g in (r.gallery or [])
         ],
         "tags": [getattr(t, "tag_value") or "" for t in (r.tags or [])],
+        "processes": [
+            {
+                "id": p.id,
+                "process_type": p.process_type,
+                "process_status": getattr(p, "process_status", "TODO"),
+                "process_result": getattr(p, "process_result", None),
+                "created_at": p.created_at.isoformat() if getattr(p, "created_at", None) else None,
+                "updated_at": p.updated_at.isoformat() if getattr(p, "updated_at", None) else None,
+            }
+            for p in (getattr(r, "processes", None) or [])
+        ],
     }
 
 
@@ -96,7 +107,7 @@ async def get_attractions(
             order=order,
             skip=pagination.skip,
             take=pagination.limit,
-            include={"gallery": True, "tags": True},
+            include={"gallery": True, "tags": True, "processes": True},
         )
         total = await prisma.attraction.count(where=where)
         serialized = [_serialize_attraction_for_list(r) for r in items]

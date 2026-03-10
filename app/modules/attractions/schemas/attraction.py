@@ -32,6 +32,15 @@ class PolicyTypeEnum(str, Enum):
     HOUSE_RULES = "HOUSE_RULES"
     OTHER = "OTHER"
 
+
+class ProcessStatusEnum(str, Enum):
+    TODO = "TODO"
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
 class GalleryImageIn(BaseModel):
     url: Optional[str] = None
     description: Optional[str] = None
@@ -52,6 +61,13 @@ class TagIn(BaseModel):
 class PolicyIn(BaseModel):
     policy_type: PolicyTypeEnum
     policy_text: str
+
+
+class ProcessIn(BaseModel):
+    """Single attraction process (process_type, process_status, process_result)."""
+    process_type: str
+    process_status: ProcessStatusEnum = ProcessStatusEnum.TODO
+    process_result: Optional[Dict[str, Any]] = None
 
 
 class TranslationIn(BaseModel):
@@ -164,6 +180,7 @@ class AttractionCreate(BaseModel):
     tags: List[Union[TagIn, dict, str]] = Field(default_factory=list)
     hours: Optional[HoursIn] = None
     policies: List[PolicyIn] = Field(default_factory=list)
+    processes: List[ProcessIn] = Field(default_factory=list)
     translations: Optional[Dict[str, TranslationIn]] = None
     details: Optional[AttractionDetailsIn] = None
     created_at: Optional[datetime] = None
@@ -225,6 +242,7 @@ class AttractionUpdate(BaseModel):
     tags: Optional[List[TagIn]] = None
     hours: Optional[HoursIn] = None
     policies: Optional[List[PolicyIn]] = None
+    processes: Optional[List[ProcessIn]] = None
     translations: Optional[Dict[str, TranslationIn]] = None
     details: Optional[AttractionDetailsIn] = None
 

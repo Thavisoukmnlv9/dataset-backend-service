@@ -246,6 +246,18 @@ async def create_attraction(
                     hours_payload["special_notes"] = PrismaJson(data.hours.special_notes)
                 create_data["hours"] = {"create": hours_payload}
 
+            if data.processes:
+                create_data["processes"] = {
+                    "create": [
+                        {
+                            "process_type": p.process_type,
+                            "process_status": p.process_status.value if hasattr(p.process_status, "value") else getattr(p, "process_status", "TODO"),
+                            "process_result": PrismaJson(p.process_result) if p.process_result is not None else None,
+                        }
+                        for p in data.processes
+                    ]
+                }
+
             created_in_tx = await tx.attraction.create(data=create_data)
             attraction_id = created_in_tx.id
 
@@ -313,6 +325,7 @@ async def create_attraction(
                 "translations": True,
                 "hours": True,
                 "details": True,
+                "processes": True,
             },
         )
         full_payload = _serialize_attraction(created) if created else {"id": attraction_id}
@@ -363,7 +376,7 @@ async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]
 
         full = await prisma.attraction.find_unique(
             where={"id": attraction_id},
-            include={"gallery": True, "tags": True, "details": True},
+            include={"gallery": True, "tags": True, "details": True, "processes": True},
         )
         payload = _serialize_attraction(full) if full else {"id": attraction_id}
         return create_success_response(
@@ -440,6 +453,17 @@ def _serialize_attraction(r: Any) -> Dict[str, Any]:
             else None
         ),
         "details": _serialize_details(r.details) if r.details else None,
+        "processes": [
+            {
+                "id": p.id,
+                "process_type": p.process_type,
+                "process_status": getattr(p, "process_status", "TODO"),
+                "process_result": getattr(p, "process_result", None),
+                "created_at": p.created_at.isoformat() if getattr(p, "created_at", None) else None,
+                "updated_at": p.updated_at.isoformat() if getattr(p, "updated_at", None) else None,
+            }
+            for p in (getattr(r, "processes", None) or [])
+        ],
     }
 
 

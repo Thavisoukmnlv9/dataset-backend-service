@@ -29,6 +29,7 @@ _FORM_JSON_KEYS = frozenset[str]({
     "hours",
     "opening_hours",
     "policies",
+    "processes",
     "translations",
     "details",
 })

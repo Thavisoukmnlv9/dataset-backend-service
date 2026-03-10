@@ -956,6 +956,7 @@ model Attraction {
   translations AttractionTranslation[]
   hours        AttractionHours?
   details      AttractionDetails?
+  processes    AttractionProcess[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -964,6 +965,20 @@ model Attraction {
   @@index([status])
   @@index([category])
   @@map("attractions")
+}
+
+model AttractionProcess {
+  id String @id @default(uuid())
+  attraction_id String
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+  process_type String
+  process_status String @default("TODO")
+  process_result Json?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([attraction_id])
+  @@map("attraction_processes")
 }
 
 model AttractionGalleryImage {

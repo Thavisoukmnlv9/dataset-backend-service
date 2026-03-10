@@ -33,6 +33,7 @@ async def update_attraction(
                 "translations": True,
                 "hours": True,
                 "details": True,
+                "processes": True,
             },
         )
         if not existing:
@@ -166,6 +167,20 @@ async def update_attraction(
                         for p in data.policies
                     ]
                 )
+        if data.processes is not None:
+            await prisma.attractionprocess.delete_many(where={"attraction_id": attraction_id})
+            if data.processes:
+                await prisma.attractionprocess.create_many(
+                    data=[
+                        {
+                            "attraction_id": attraction_id,
+                            "process_type": p.process_type,
+                            "process_status": p.process_status.value if hasattr(p.process_status, "value") else getattr(p, "process_status", "TODO"),
+                            "process_result": PrismaJson(p.process_result) if p.process_result is not None else None,
+                        }
+                        for p in data.processes
+                    ]
+                )
         if data.hours is not None and data.hours.weekly_schedule:
             from app.modules.attractions.services.create import _to_prisma_weekly_schedule
 
@@ -270,6 +285,7 @@ async def update_attraction(
                 "translations": True,
                 "hours": True,
                 "details": True,
+                "processes": True,
             },
         )
         out = _serialize_attraction(updated)

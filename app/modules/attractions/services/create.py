@@ -42,6 +42,29 @@ def _slugify(text: str) -> str:
     return s or "attraction-" + uuid.uuid4().hex[:8]
 
 
+async def _check_attraction_exists(
+    name: str,
+    province: Optional[str] = None,
+    district: Optional[str] = None,
+    village: Optional[str] = None,
+) -> bool:
+    """Return True if an attraction with the same name, province, district, and village already exists."""
+    name_norm = (name or "").strip()
+    if not name_norm:
+        return False
+    province_norm = (province or "").strip()
+    district_norm = (district or "").strip()
+    village_norm = (village or "").strip()
+
+    where: Dict[str, Any] = {"name": name_norm}
+    where["province"] = {"in": [province_norm, None]} if province_norm == "" else province_norm
+    where["district"] = {"in": [district_norm, None]} if district_norm == "" else district_norm
+    where["village"] = {"in": [village_norm, None]} if village_norm == "" else village_norm
+
+    existing = await prisma.attraction.find_first(where=where)
+    return existing is not None
+
+
 async def _resolve_slug(tx: Any, slug: Optional[str], name: str) -> str:
     """Return slug to use; if slug is None/empty, generate from name and ensure unique."""
     base = (slug or "").strip() or _slugify(name)
@@ -135,6 +158,16 @@ async def create_attraction(
                     break
 
     try:
+        if await _check_attraction_exists(
+            name=data.name,
+            province=data.province,
+            district=data.district,
+            village=data.village,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An attraction with the same name, province, district and village already exists.",
+            )
         async with prisma.tx() as tx:
             resolved_slug = await _resolve_slug(tx, data.slug, data.name)
 
@@ -301,6 +334,16 @@ async def create_attraction(
 async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]:
     """Create an attraction with only name, location, country, and contact fields."""
     try:
+        if await _check_attraction_exists(
+            name=data.attraction_name,
+            province=data.province,
+            district=data.district,
+            village=data.village,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An attraction with the same name, province, district and village already exists.",
+            )
         async with prisma.tx() as tx:
             resolved_slug = await _resolve_slug(tx, None, data.attraction_name)
             create_data: Dict[str, Any] = {

@@ -374,6 +374,15 @@ async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]
             created = await tx.attraction.create(data=create_data)
             attraction_id = created.id
 
+            await tx.attractionprocess.create(
+                data={
+                    "attraction_id": attraction_id,
+                    "process_type": "DRAFT_CREATED",
+                    "process_status": "TODO",
+                    "process_result": None,
+                }
+            )
+
         full = await prisma.attraction.find_unique(
             where={"id": attraction_id},
             include={"gallery": True, "tags": True, "details": True, "processes": True},

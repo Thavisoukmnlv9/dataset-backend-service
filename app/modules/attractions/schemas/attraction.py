@@ -36,9 +36,11 @@ class PolicyTypeEnum(str, Enum):
 class ProcessStatusEnum(str, Enum):
     TODO = "TODO"
     IN_PROGRESS = "IN_PROGRESS"
+    IMAGE_UPLOADED = "IMAGE_UPLOADED"
     DONE = "DONE"
     FAILED = "FAILED"
     CANCELLED = "CANCELLED"
+
 
 
 class GalleryImageIn(BaseModel):

@@ -12,6 +12,7 @@ from app.modules.attractions.schemas.attraction import (
     AttractionCreate,
     AttractionCreateDraft,
     AttractionUpdate,
+    AttractionProcessUpdate,
     AttractionFilters,
     ListingStatusEnum,
 )
@@ -248,3 +249,19 @@ async def delete_attraction_route(attraction_id: str, admin_user=Depends(get_adm
     from app.modules.attractions.services.delete import delete_attraction as _delete
 
     return await _delete(attraction_id)
+
+
+@router.patch(
+    "/{attraction_id}/processes/{process_id}",
+    summary="Update attraction process",
+    description="Update a single process's status and/or result (e.g. set to TODO to retry).",
+)
+async def update_attraction_process_route(
+    attraction_id: str,
+    process_id: str,
+    data: AttractionProcessUpdate,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.attractions.services.update import update_attraction_process as _update_process
+
+    return await _update_process(attraction_id, process_id, data)

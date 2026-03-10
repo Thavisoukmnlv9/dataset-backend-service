@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.attractions.schemas.attraction import AttractionUpdate
+from app.modules.attractions.schemas.attraction import AttractionUpdate, AttractionProcessUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -295,3 +295,59 @@ async def update_attraction(
     except Exception as e:
         logger.exception("update_attraction error")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+async def update_attraction_process(
+    attraction_id: str,
+    process_id: str,
+    data: AttractionProcessUpdate,
+) -> Dict[str, Any]:
+    """Update a single attraction process (status and/or result)."""
+    from app.modules.attractions.services.create import _serialize_attraction
+
+    process = await prisma.attractionprocess.find_first(
+        where={"id": process_id, "attraction_id": attraction_id},
+    )
+    if not process:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Process not found")
+
+    update_payload: Dict[str, Any] = {}
+    if data.process_status is not None:
+        update_payload["process_status"] = data.process_status.value
+    if data.process_result is not None:
+        update_payload["process_result"] = PrismaJson(data.process_result)
+
+    if not update_payload:
+        updated = await prisma.attraction.find_unique(
+            where={"id": attraction_id},
+            include={
+                "gallery": True,
+                "tags": True,
+                "policies": True,
+                "translations": True,
+                "hours": True,
+                "details": True,
+                "processes": True,
+            },
+        )
+        out = _serialize_attraction(updated)
+        return create_success_response(message="No changes", data={"attraction": out})
+
+    await prisma.attractionprocess.update(
+        where={"id": process_id},
+        data=update_payload,
+    )
+    updated = await prisma.attraction.find_unique(
+        where={"id": attraction_id},
+        include={
+            "gallery": True,
+            "tags": True,
+            "policies": True,
+            "translations": True,
+            "hours": True,
+            "details": True,
+            "processes": True,
+        },
+    )
+    out = _serialize_attraction(updated)
+    return create_success_response(message="Process updated successfully", data={"attraction": out})

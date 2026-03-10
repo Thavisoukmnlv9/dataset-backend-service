@@ -72,6 +72,12 @@ class ProcessIn(BaseModel):
     process_result: Optional[Dict[str, Any]] = None
 
 
+class AttractionProcessUpdate(BaseModel):
+    """Payload to update a single attraction process (PATCH process status/result)."""
+    process_status: Optional[ProcessStatusEnum] = None
+    process_result: Optional[Dict[str, Any]] = None
+
+
 class TranslationIn(BaseModel):
     name: Optional[str] = None
     short_description: Optional[str] = None

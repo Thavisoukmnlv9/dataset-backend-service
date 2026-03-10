@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/attractions", tags=["Attractions"])
 
-_FORM_JSON_KEYS = frozenset({
+_FORM_JSON_KEYS = frozenset[str]({
     "languages_supported",
     "gallery_urls",
     "gallery_files",

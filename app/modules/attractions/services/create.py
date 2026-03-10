@@ -475,10 +475,9 @@ async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]
 
             process_created = await tx.attractionprocess.create(
                 data={
-                    "attraction_id": attraction_id,
+                    "attraction": {"connect": {"id": attraction_id}},
                     "process_type": "DRAFT_CREATED",
                     "process_status": "TODO",
-                    "process_result": None,
                 }
             )
             process_id = getattr(process_created, "id", None)

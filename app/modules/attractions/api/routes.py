@@ -10,6 +10,7 @@ from app.shared.schemas.base import PaginationParams
 
 from app.modules.attractions.schemas.attraction import (
     AttractionCreate,
+    AttractionCreateDraft,
     AttractionUpdate,
     AttractionFilters,
     ListingStatusEnum,
@@ -169,6 +170,20 @@ async def get_attraction_route(attraction_id: str, _user=Depends(get_current_act
     from app.modules.attractions.services.get_one import get_attraction
 
     return await get_attraction(attraction_id)
+
+
+@router.post(
+    "/draft",
+    summary="Create attraction (draft)",
+    description="Create an attraction with: attraction_name, longitude, latitude, country, province, district, village, contact_phone. JSON body.",
+)
+async def create_attraction_draft_route(
+    data: AttractionCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.attractions.services.create import create_attraction_draft as _create_draft
+
+    return await _create_draft(data)
 
 
 @router.post(

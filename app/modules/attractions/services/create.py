@@ -13,6 +13,7 @@ from app.shared.services.infrastructure.storage import storage_service
 
 from app.modules.attractions.schemas.attraction import (
     AttractionCreate,
+    AttractionCreateDraft,
     GalleryImageIn,
 )
 
@@ -291,6 +292,45 @@ async def create_attraction(
         raise
     except Exception as e:
         logger.exception("Create attraction error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]:
+    """Create an attraction with only name, location, country, and contact fields."""
+    try:
+        async with prisma.tx() as tx:
+            resolved_slug = await _resolve_slug(tx, None, data.attraction_name)
+            create_data: Dict[str, Any] = {
+                "name": data.attraction_name,
+                "slug": resolved_slug,
+                "status": "DRAFT",
+                "country": data.country,
+                "province": data.province,
+                "district": data.district,
+                "village": data.village,
+                "contact_phone": data.contact_phone,
+                "latitude": data.latitude,
+                "longitude": data.longitude,
+            }
+            created = await tx.attraction.create(data=create_data)
+            attraction_id = created.id
+
+        full = await prisma.attraction.find_unique(
+            where={"id": attraction_id},
+            include={"gallery": True, "tags": True, "details": True},
+        )
+        payload = _serialize_attraction(full) if full else {"id": attraction_id}
+        return create_success_response(
+            message="Attraction created successfully",
+            data={"attraction": payload},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Create attraction (draft) error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

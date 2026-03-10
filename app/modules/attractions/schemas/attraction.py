@@ -235,3 +235,15 @@ class AttractionFilters(BaseModel):
     district: Optional[str] = None
     status: Optional[ListingStatusEnum] = None
     category: Optional[str] = None
+
+
+class AttractionCreateDraft(BaseModel):
+    """Minimal payload to create an attraction: name, location, country, contact."""
+    attraction_name: str = Field(..., description="Name of the attraction")
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    country: Optional[str] = None
+    province: Optional[str] = None
+    district: Optional[str] = None
+    village: Optional[str] = None
+    contact_phone: Optional[str] = None

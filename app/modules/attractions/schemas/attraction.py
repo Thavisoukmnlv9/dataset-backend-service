@@ -66,8 +66,7 @@ class PolicyIn(BaseModel):
 
 
 class ProcessIn(BaseModel):
-    """Single attraction process (process_type, process_status, process_result)."""
-    process_type: str
+    """Single attraction process (process_status, process_result)."""
     process_status: ProcessStatusEnum = ProcessStatusEnum.TODO
     process_result: Optional[Dict[str, Any]] = None
 

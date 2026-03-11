@@ -174,7 +174,6 @@ async def update_attraction(
                     data=[
                         {
                             "attraction_id": attraction_id,
-                            "process_type": p.process_type,
                             "process_status": p.process_status.value if hasattr(p.process_status, "value") else getattr(p, "process_status", "TODO"),
                             "process_result": PrismaJson(p.process_result) if p.process_result is not None else None,
                         }

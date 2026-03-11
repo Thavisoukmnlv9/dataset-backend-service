@@ -971,7 +971,6 @@ model AttractionProcess {
   id String @id @default(uuid())
   attraction_id String
   attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
-  process_type String
   process_status String @default("TODO")
   process_result Json?
   created_at     DateTime @default(now())

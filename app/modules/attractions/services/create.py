@@ -349,7 +349,6 @@ async def create_attraction(
                 create_data["processes"] = {
                     "create": [
                         {
-                            "process_type": p.process_type,
                             "process_status": p.process_status.value if hasattr(p.process_status, "value") else getattr(p, "process_status", "TODO"),
                             "process_result": PrismaJson(p.process_result) if p.process_result is not None else None,
                         }
@@ -476,7 +475,6 @@ async def create_attraction_draft(data: AttractionCreateDraft) -> Dict[str, Any]
             process_created = await tx.attractionprocess.create(
                 data={
                     "attraction": {"connect": {"id": attraction_id}},
-                    "process_type": "DRAFT_CREATED",
                     "process_status": "TODO",
                 }
             )
@@ -575,7 +573,6 @@ def _serialize_attraction(r: Any) -> Dict[str, Any]:
         "processes": [
             {
                 "id": p.id,
-                "process_type": p.process_type,
                 "process_status": getattr(p, "process_status", "TODO"),
                 "process_result": getattr(p, "process_result", None),
                 "created_at": p.created_at.isoformat() if getattr(p, "created_at", None) else None,

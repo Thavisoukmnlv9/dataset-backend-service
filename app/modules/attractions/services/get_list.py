@@ -55,7 +55,6 @@ def _serialize_attraction_for_list(r: Any) -> Dict[str, Any]:
         "processes": [
             {
                 "id": p.id,
-                "process_type": p.process_type,
                 "process_status": getattr(p, "process_status", "TODO"),
                 "process_result": getattr(p, "process_result", None),
                 "created_at": p.created_at.isoformat() if getattr(p, "created_at", None) else None,

@@ -284,6 +284,18 @@ class RestaurantUpdate(BaseModel):
     menu: Optional[MenuIn] = None
     category_details: Optional[CategoryDetailsIn] = None
 
+class RestaurantCreateDraft(BaseModel):
+    """Minimal payload to create a restaurant: name, location, country, contact."""
+    restaurant_name: str = Field(..., description="Name of the restaurant")
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    country: Optional[str] = None
+    province: Optional[str] = None
+    district: Optional[str] = None
+    village: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+
 class RestaurantFilters(BaseModel):
     """Query filters for list endpoint."""
     province: Optional[str] = None

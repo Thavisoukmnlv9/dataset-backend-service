@@ -10,6 +10,7 @@ from app.shared.schemas.base import PaginationParams
 
 from app.modules.restaurants.schemas.restaurant import (
     RestaurantCreate,
+    RestaurantCreateDraft,
     RestaurantUpdate,
     RestaurantFilters,
     ListingStatusEnum,
@@ -213,6 +214,42 @@ async def sync_restaurants_to_qdrant_route(admin_user=Depends(get_admin_user)):
     from app.modules.restaurants.services.create import sync_restaurants_to_qdrant
 
     return await sync_restaurants_to_qdrant()
+
+
+@router.get("/draft/{restaurant_id}", summary="Get draft restaurant by ID")
+async def get_draft_restaurant_route(restaurant_id: str, _user=Depends(get_current_active_user)):
+    from app.modules.restaurants.services.get_one import get_restaurant_draft
+
+    return await get_restaurant_draft(restaurant_id)
+
+
+@router.patch(
+    "/draft/{restaurant_id}",
+    summary="Update draft restaurant",
+    description="Update a draft restaurant's minimal fields (name, location, contact). JSON body.",
+)
+async def update_draft_restaurant_route(
+    restaurant_id: str,
+    data: RestaurantCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.restaurants.services.update import update_restaurant_draft as _update_draft
+
+    return await _update_draft(restaurant_id, data)
+
+
+@router.post(
+    "/draft",
+    summary="Create restaurant (draft)",
+    description="Create a restaurant with: restaurant_name, longitude, latitude, country, province, district, village, contact_phone. JSON body.",
+)
+async def create_restaurant_draft_route(
+    data: RestaurantCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.restaurants.services.create import create_restaurant_draft as _create_draft
+
+    return await _create_draft(data)
 
 
 @router.get("/{restaurant_id}", summary="Get restaurant by ID")

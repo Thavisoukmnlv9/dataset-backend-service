@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.restaurants.schemas.restaurant import RestaurantUpdate
+from app.modules.restaurants.schemas.restaurant import RestaurantUpdate, RestaurantCreateDraft
 
 logger = logging.getLogger(__name__)
 
@@ -269,4 +269,58 @@ async def update_restaurant(
         raise
     except Exception as e:
         logger.exception("update_restaurant error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+async def update_restaurant_draft(
+    restaurant_id: str,
+    data: RestaurantCreateDraft,
+) -> Dict[str, Any]:
+    """Update a draft restaurant's minimal fields."""
+    from app.modules.restaurants.services.create import _serialize_restaurant
+
+    try:
+        existing = await prisma.restaurant.find_unique(where={"id": restaurant_id})
+        if not existing:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if existing.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Restaurant is not a draft")
+
+        update_payload: Dict[str, Any] = {}
+        if data.restaurant_name:
+            update_payload["name"] = data.restaurant_name
+        if data.latitude is not None:
+            update_payload["latitude"] = data.latitude
+        if data.longitude is not None:
+            update_payload["longitude"] = data.longitude
+        if data.country is not None:
+            update_payload["country"] = data.country
+        if data.province is not None:
+            update_payload["province"] = data.province
+        if data.district is not None:
+            update_payload["district"] = data.district
+        if data.village is not None:
+            update_payload["village"] = data.village
+        if data.contact_phone is not None:
+            update_payload["contact_phone"] = data.contact_phone
+
+        updated = await prisma.restaurant.update(
+            where={"id": restaurant_id},
+            data=update_payload,
+            include={
+                "gallery": True,
+                "tags": True,
+                "policies": True,
+                "translations": True,
+                "hours": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
+                "details": True,
+            },
+        )
+        out = _serialize_restaurant(updated)
+        return create_success_response(message="Draft updated successfully", data={"item": out})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("update_restaurant_draft error")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

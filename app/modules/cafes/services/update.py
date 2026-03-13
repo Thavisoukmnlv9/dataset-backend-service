@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.cafes.schemas.cafe import CafeUpdate
+from app.modules.cafes.schemas.cafe import CafeUpdate, CafeCreateDraft
 from app.modules.cafes.services.create import (
     _serialize_cafe,
     _to_stored_path,
@@ -314,4 +314,55 @@ async def update_cafe(
         raise
     except Exception as e:
         logger.exception("update_cafe error: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+async def update_cafe_draft(cafe_id: str, data: CafeCreateDraft) -> Dict[str, Any]:
+    """Update a draft cafe's minimal fields."""
+    from app.modules.cafes.services.create import _serialize_cafe
+
+    try:
+        existing = await prisma.cafe.find_unique(where={"id": cafe_id})
+        if not existing:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if existing.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cafe is not a draft")
+
+        update_payload: Dict[str, Any] = {}
+        if data.cafe_name:
+            update_payload["name"] = data.cafe_name
+        if data.latitude is not None:
+            update_payload["latitude"] = data.latitude
+        if data.longitude is not None:
+            update_payload["longitude"] = data.longitude
+        if data.country is not None:
+            update_payload["country"] = data.country
+        if data.province is not None:
+            update_payload["province"] = data.province
+        if data.district is not None:
+            update_payload["district"] = data.district
+        if data.village is not None:
+            update_payload["village"] = data.village
+        if data.contact_phone is not None:
+            update_payload["contact_phone"] = data.contact_phone
+
+        updated = await prisma.cafe.update(
+            where={"id": cafe_id},
+            data=update_payload,
+            include={
+                "tags": True,
+                "hours": True,
+                "gallery": True,
+                "policies": True,
+                "translations": True,
+                "details": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
+            },
+        )
+        out = _serialize_cafe(updated)
+        return create_success_response(message="Draft updated successfully", data={"item": out})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("update_cafe_draft error: %s", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

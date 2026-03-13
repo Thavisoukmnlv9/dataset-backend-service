@@ -10,6 +10,7 @@ from app.shared.schemas.base import PaginationParams
 
 from app.modules.bars.schemas.bar import (
     BarCreate,
+    BarCreateDraft,
     BarUpdate,
     BarFilters,
     ListingStatusEnum,
@@ -178,6 +179,42 @@ async def list_bars(
     filters = BarFilters(province=province, district=district, status=status, category=category)
     pagination = PaginationParams(page=page, limit=limit, sort=sort, order=order)
     return await get_bars(filters=filters, pagination=pagination, search=search)
+
+
+@router.get("/draft/{bar_id}", summary="Get draft bar by ID")
+async def get_draft_bar_route(bar_id: str, _user=Depends(get_current_active_user)):
+    from app.modules.bars.services.get_one import get_bar_draft
+
+    return await get_bar_draft(bar_id)
+
+
+@router.patch(
+    "/draft/{bar_id}",
+    summary="Update draft bar",
+    description="Update a draft bar's minimal fields (name, location, contact). JSON body.",
+)
+async def update_draft_bar_route(
+    bar_id: str,
+    data: BarCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.bars.services.update import update_bar_draft as _update_draft
+
+    return await _update_draft(bar_id, data)
+
+
+@router.post(
+    "/draft",
+    summary="Create bar (draft)",
+    description="Create a bar with: bar_name, longitude, latitude, country, province, district, village, contact_phone. JSON body.",
+)
+async def create_bar_draft_route(
+    data: BarCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.bars.services.create import create_bar_draft as _create_draft
+
+    return await _create_draft(data)
 
 
 @router.get("/{bar_id}", summary="Get bar by ID")

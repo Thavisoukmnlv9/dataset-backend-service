@@ -339,6 +339,18 @@ class BarUpdate(BaseModel):
     category_details: Optional[BarDetailsIn] = None
 
 
+class BarCreateDraft(BaseModel):
+    """Minimal payload to create a bar: name, location, country, contact."""
+    bar_name: str = Field(..., description="Name of the bar")
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    country: Optional[str] = None
+    province: Optional[str] = None
+    district: Optional[str] = None
+    village: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+
 class BarFilters(BaseModel):
     """Query filters for list endpoint."""
     province: Optional[str] = None

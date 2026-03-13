@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.bars.schemas.bar import BarUpdate
+from app.modules.bars.schemas.bar import BarUpdate, BarCreateDraft
 
 logger = logging.getLogger(__name__)
 
@@ -247,4 +247,55 @@ async def update_bar(
         raise
     except Exception as e:
         logger.exception("update_bar error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+async def update_bar_draft(bar_id: str, data: BarCreateDraft) -> Dict[str, Any]:
+    """Update a draft bar's minimal fields."""
+    from app.modules.bars.services.create import _serialize_bar
+
+    try:
+        existing = await prisma.bar.find_unique(where={"id": bar_id})
+        if not existing:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if existing.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bar is not a draft")
+
+        update_payload: Dict[str, Any] = {}
+        if data.bar_name:
+            update_payload["name"] = data.bar_name
+        if data.latitude is not None:
+            update_payload["latitude"] = data.latitude
+        if data.longitude is not None:
+            update_payload["longitude"] = data.longitude
+        if data.country is not None:
+            update_payload["country"] = data.country
+        if data.province is not None:
+            update_payload["province"] = data.province
+        if data.district is not None:
+            update_payload["district"] = data.district
+        if data.village is not None:
+            update_payload["village"] = data.village
+        if data.contact_phone is not None:
+            update_payload["contact_phone"] = data.contact_phone
+
+        updated = await prisma.bar.update(
+            where={"id": bar_id},
+            data=update_payload,
+            include={
+                "gallery": True,
+                "tags": True,
+                "policies": True,
+                "translations": True,
+                "hours": True,
+                "menu": {"include": {"barMenuSections": {"include": {"items": True}}}},
+                "details": True,
+            },
+        )
+        out = _serialize_bar(updated)
+        return create_success_response(message="Draft updated successfully", data={"item": out})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("update_bar_draft error")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

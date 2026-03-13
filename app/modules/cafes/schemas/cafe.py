@@ -362,6 +362,18 @@ class CafeUpdate(BaseModel):
     menu: Optional[MenuIn] = None
 
 
+class CafeCreateDraft(BaseModel):
+    """Minimal payload to create a cafe: name, location, country, contact."""
+    cafe_name: str = Field(..., description="Name of the cafe")
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    country: Optional[str] = None
+    province: Optional[str] = None
+    district: Optional[str] = None
+    village: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+
 class CafeFilters(BaseModel):
     """Query filters for list endpoint (same pattern as RestaurantFilters)."""
     province: Optional[str] = None

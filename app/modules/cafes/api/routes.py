@@ -10,6 +10,7 @@ from app.shared.schemas.base import PaginationParams
 
 from app.modules.cafes.schemas.cafe import (
     CafeCreate,
+    CafeCreateDraft,
     CafeUpdate,
     CafeFilters,
     ListingStatusEnum,
@@ -191,6 +192,42 @@ async def list_cafes(
     return await get_cafes(filters=filters, pagination=pagination, search=search)
 
 
+@router.get("/draft/{cafe_id}", summary="Get draft cafe by ID")
+async def get_draft_cafe_route(cafe_id: str, _user=Depends(get_current_active_user)):
+    from app.modules.cafes.services.get_one import get_cafe_draft
+
+    return await get_cafe_draft(cafe_id)
+
+
+@router.patch(
+    "/draft/{cafe_id}",
+    summary="Update draft cafe",
+    description="Update a draft cafe's minimal fields (name, location, contact). JSON body.",
+)
+async def update_draft_cafe_route(
+    cafe_id: str,
+    data: CafeCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.cafes.services.update import update_cafe_draft as _update_draft
+
+    return await _update_draft(cafe_id, data)
+
+
+@router.post(
+    "/draft",
+    summary="Create cafe (draft)",
+    description="Create a cafe with: cafe_name, longitude, latitude, country, province, district, village, contact_phone. JSON body.",
+)
+async def create_cafe_draft_route(
+    data: CafeCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.cafes.services.create import create_cafe_draft as _create_draft
+
+    return await _create_draft(data)
+
+
 @router.get("/{cafe_id}", summary="Get cafe by ID")
 async def get_cafe_route(cafe_id: str, _user=Depends(get_current_active_user)):
     from app.modules.cafes.services.get_one import get_cafe as _get_one
@@ -210,8 +247,7 @@ async def create_cafe_route(request: Request, admin_user=Depends(get_admin_user)
     if "application/json" in content_type:
         body = await request.json()
         payload = body
-        cover_file, gallery_files = None, []
-        menu_source_file, menu_item_files = None, {}
+        cover_file, gallery_ordered, menu_source_file, menu_item_files = None, [], None, {}
     else:
         form = await request.form()
         form_dict = dict(form)

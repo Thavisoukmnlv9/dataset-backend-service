@@ -14,6 +14,7 @@ from app.shared.services.infrastructure.storage import storage_service
 
 from app.modules.cafes.schemas.cafe import (
     CafeCreate,
+    CafeCreateDraft,
     GalleryImageIn,
 )
 
@@ -50,6 +51,27 @@ async def _resolve_slug(tx: Any, slug: Optional[str], name: str) -> str:
             return candidate
         n += 1
         candidate = f"{base}-{n}"
+
+
+async def _check_cafe_exists(
+    name: str,
+    province: Optional[str] = None,
+    district: Optional[str] = None,
+    village: Optional[str] = None,
+) -> bool:
+    """Return True if a cafe with the same name, province, district, and village already exists."""
+    name_norm = (name or "").strip()
+    if not name_norm:
+        return False
+    province_norm = (province or "").strip()
+    district_norm = (district or "").strip()
+    village_norm = (village or "").strip()
+    where: Dict[str, Any] = {"name": name_norm}
+    where["province"] = {"in": [province_norm, None]} if province_norm == "" else province_norm
+    where["district"] = {"in": [district_norm, None]} if district_norm == "" else district_norm
+    where["village"] = {"in": [village_norm, None]} if village_norm == "" else village_norm
+    existing = await prisma.cafe.find_first(where=where)
+    return existing is not None
 
 
 async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
@@ -537,6 +559,55 @@ async def create_cafe(
         raise
     except Exception as e:
         logger.exception("Create cafe error: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+async def create_cafe_draft(data: CafeCreateDraft) -> Dict[str, Any]:
+    """Create a cafe with only name, location, country, and contact fields (status DRAFT)."""
+    try:
+        if await _check_cafe_exists(
+            name=data.cafe_name,
+            province=data.province,
+            district=data.district,
+            village=data.village,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A cafe with the same name, province, district and village already exists.",
+            )
+        async with prisma.tx() as tx:
+            resolved_slug = await _resolve_slug(tx, None, data.cafe_name)
+            create_data: Dict[str, Any] = {
+                "name": data.cafe_name,
+                "slug": resolved_slug,
+                "status": "DRAFT",
+                "country": data.country or "",
+                "province": data.province or "",
+                "district": data.district or "",
+                "village": data.village,
+                "contact_phone": data.contact_phone,
+                "latitude": data.latitude,
+                "longitude": data.longitude,
+            }
+            created = await tx.cafe.create(data=create_data)
+            cafe_id = created.id
+
+        full = await prisma.cafe.find_unique(
+            where={"id": cafe_id},
+            include={"tags": True, "gallery": True, "details": True},
+        )
+        payload = _serialize_cafe(full) if full else {"id": cafe_id}
+        return create_success_response(
+            message="Cafe created successfully",
+            data={"cafe": payload},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Create cafe (draft) error: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

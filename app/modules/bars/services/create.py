@@ -13,6 +13,7 @@ from app.shared.services.infrastructure.storage import storage_service
 
 from app.modules.bars.schemas.bar import (
     BarCreate,
+    BarCreateDraft,
     GalleryImageIn,
 )
 
@@ -52,6 +53,27 @@ async def _resolve_slug(tx: Any, slug: Optional[str], name: str) -> str:
             return candidate
         n += 1
         candidate = f"{base}-{n}"
+
+
+async def _check_bar_exists(
+    name: str,
+    province: Optional[str] = None,
+    district: Optional[str] = None,
+    village: Optional[str] = None,
+) -> bool:
+    """Return True if a bar with the same name, province, district, and village already exists."""
+    name_norm = (name or "").strip()
+    if not name_norm:
+        return False
+    province_norm = (province or "").strip()
+    district_norm = (district or "").strip()
+    village_norm = (village or "").strip()
+    where: Dict[str, Any] = {"name": name_norm}
+    where["province"] = {"in": [province_norm, None]} if province_norm == "" else province_norm
+    where["district"] = {"in": [district_norm, None]} if district_norm == "" else district_norm
+    where["village"] = {"in": [village_norm, None]} if village_norm == "" else village_norm
+    existing = await prisma.bar.find_first(where=where)
+    return existing is not None
 
 
 async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
@@ -366,6 +388,55 @@ async def create_bar(
         raise
     except Exception as e:
         logger.exception("Create bar error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+async def create_bar_draft(data: BarCreateDraft) -> Dict[str, Any]:
+    """Create a bar with only name, location, country, and contact fields (status DRAFT)."""
+    try:
+        if await _check_bar_exists(
+            name=data.bar_name,
+            province=data.province,
+            district=data.district,
+            village=data.village,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A bar with the same name, province, district and village already exists.",
+            )
+        async with prisma.tx() as tx:
+            resolved_slug = await _resolve_slug(tx, None, data.bar_name)
+            create_data: Dict[str, Any] = {
+                "name": data.bar_name,
+                "slug": resolved_slug,
+                "status": "DRAFT",
+                "country": data.country or "",
+                "province": data.province or "",
+                "district": data.district or "",
+                "village": data.village,
+                "contact_phone": data.contact_phone,
+                "latitude": data.latitude,
+                "longitude": data.longitude,
+            }
+            created = await tx.bar.create(data=create_data)
+            bar_id = created.id
+
+        full = await prisma.bar.find_unique(
+            where={"id": bar_id},
+            include={"gallery": True, "tags": True, "details": True},
+        )
+        payload = _serialize_bar(full) if full else {"id": bar_id}
+        return create_success_response(
+            message="Bar created successfully",
+            data={"bar": payload},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Create bar (draft) error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

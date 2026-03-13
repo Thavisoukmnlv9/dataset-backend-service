@@ -32,6 +32,33 @@ def _apply_upload_urls(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+async def get_cafe_draft(cafe_id: str) -> Dict[str, Any]:
+    try:
+        c = await prisma.cafe.find_unique(
+            where={"id": cafe_id},
+            include={
+                "tags": True,
+                "hours": True,
+                "gallery": True,
+                "policies": True,
+                "translations": True,
+                "details": True,
+                "menu": {"include": {"sections": {"include": {"items": True}}}},
+            },
+        )
+        if not c:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if c.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cafe is not a draft")
+        data = _apply_upload_urls(_serialize_cafe(c))
+        return create_success_response(message="Draft retrieved successfully", data={"item": data})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("get_cafe_draft error: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 async def get_cafe(cafe_id: str) -> Dict[str, Any]:
     try:
         c = await prisma.cafe.find_unique(

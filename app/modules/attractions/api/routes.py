@@ -167,6 +167,28 @@ async def list_attractions(
     return await get_attractions(filters=filters, pagination=pagination, search=search)
 
 
+@router.get("/draft/{attraction_id}", summary="Get draft attraction by ID")
+async def get_draft_attraction_route(attraction_id: str, _user=Depends(get_current_active_user)):
+    from app.modules.attractions.services.get_one import get_attraction_draft
+
+    return await get_attraction_draft(attraction_id)
+
+
+@router.patch(
+    "/draft/{attraction_id}",
+    summary="Update draft attraction",
+    description="Update a draft attraction's minimal fields (name, location, contact). JSON body.",
+)
+async def update_draft_attraction_route(
+    attraction_id: str,
+    data: AttractionCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.attractions.services.update import update_attraction_draft as _update_draft
+
+    return await _update_draft(attraction_id, data)
+
+
 @router.get("/{attraction_id}", summary="Get attraction by ID")
 async def get_attraction_route(attraction_id: str, _user=Depends(get_current_active_user)):
     from app.modules.attractions.services.get_one import get_attraction

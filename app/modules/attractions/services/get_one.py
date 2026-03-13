@@ -25,6 +25,33 @@ def _apply_upload_urls(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+async def get_attraction_draft(attraction_id: str) -> Dict[str, Any]:
+    try:
+        r = await prisma.attraction.find_unique(
+            where={"id": attraction_id},
+            include={
+                "gallery": True,
+                "tags": True,
+                "policies": True,
+                "translations": True,
+                "hours": True,
+                "details": True,
+                "processes": True,
+            },
+        )
+        if not r:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if r.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attraction is not a draft")
+        data = _apply_upload_urls(_serialize_attraction(r))
+        return create_success_response(message="Draft retrieved successfully", data={"item": data})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("get_attraction_draft error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 async def get_attraction(attraction_id: str) -> Dict[str, Any]:
     try:
         r = await prisma.attraction.find_unique(

@@ -3,6 +3,8 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 
 from app.api.dependencies import get_current_active_user, get_admin_user
@@ -14,6 +16,7 @@ from app.modules.attractions.schemas.attraction import (
     AttractionUpdate,
     AttractionProcessUpdate,
     AttractionFilters,
+    AttractionLookupQueryDTO,
     ListingStatusEnum,
 )
 
@@ -165,6 +168,29 @@ async def list_attractions(
     filters = AttractionFilters(province=province, district=district, status=status, category=category)
     pagination = PaginationParams(page=page, limit=limit, sort=sort, order=order)
     return await get_attractions(filters=filters, pagination=pagination, search=search)
+
+
+@router.get("/lookup", summary="Lookup attractions for dropdowns")
+async def lookup_attractions(
+    q: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    _user=Depends(get_current_active_user),
+):
+    from app.modules.attractions.services.lookup import lookup_attractions as _lookup
+
+    query = AttractionLookupQueryDTO(q=q, limit=limit, skip=skip)
+    return await _lookup(query)
+
+
+@router.get("/lookup/{attraction_id}", summary="Lookup single attraction by ID")
+async def lookup_attraction_by_id(
+    attraction_id: str,
+    _user=Depends(get_current_active_user),
+):
+    from app.modules.attractions.services.lookup import lookup_attraction_by_id as _lookup_by_id
+
+    return await _lookup_by_id(attraction_id)
 
 
 @router.get("/draft/{attraction_id}", summary="Get draft attraction by ID")

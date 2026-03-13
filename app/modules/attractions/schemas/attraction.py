@@ -272,3 +272,16 @@ class AttractionCreateDraft(BaseModel):
     district: Optional[str] = None
     village: Optional[str] = None
     contact_phone: Optional[str] = None
+
+
+class AttractionLookupItem(BaseModel):
+    """Schema for attraction lookup item (dropdowns, selectors)."""
+    id: str
+    name: str
+
+
+class AttractionLookupQueryDTO(BaseModel):
+    """Schema for attraction lookup query."""
+    q: Optional[str] = Field(None, description="Search query (name, slug)")
+    limit: int = Field(20, ge=1, le=100, description="Number of items to return")
+    skip: int = Field(0, ge=0, description="Number of items to skip")

@@ -13,6 +13,7 @@ from app.modules.restaurants.schemas.restaurant import (
     RestaurantCreateDraft,
     RestaurantUpdate,
     RestaurantFilters,
+    RestaurantLookupQueryDTO,
     ListingStatusEnum,
     ListingCategoryEnum,
 )
@@ -250,6 +251,29 @@ async def create_restaurant_draft_route(
     from app.modules.restaurants.services.create import create_restaurant_draft as _create_draft
 
     return await _create_draft(data)
+
+
+@router.get("/lookup", summary="Lookup restaurants for dropdowns")
+async def lookup_restaurants(
+    q: Optional[str] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    _user=Depends(get_current_active_user),
+):
+    from app.modules.restaurants.services.lookup import lookup_restaurants as _lookup
+
+    query = RestaurantLookupQueryDTO(q=q, limit=limit, skip=skip)
+    return await _lookup(query)
+
+
+@router.get("/lookup/{restaurant_id}", summary="Lookup single restaurant by ID")
+async def lookup_restaurant_by_id(
+    restaurant_id: str,
+    _user=Depends(get_current_active_user),
+):
+    from app.modules.restaurants.services.lookup import lookup_restaurant_by_id as _lookup_by_id
+
+    return await _lookup_by_id(restaurant_id)
 
 
 @router.get("/{restaurant_id}", summary="Get restaurant by ID")

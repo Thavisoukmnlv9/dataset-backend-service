@@ -296,6 +296,19 @@ class RestaurantCreateDraft(BaseModel):
     contact_phone: Optional[str] = None
 
 
+class RestaurantLookupItem(BaseModel):
+    """Schema for restaurant lookup item (dropdowns, selectors)."""
+    id: str
+    name: str
+
+
+class RestaurantLookupQueryDTO(BaseModel):
+    """Schema for restaurant lookup query."""
+    q: Optional[str] = Field(None, description="Search query (name, slug)")
+    limit: int = Field(20, ge=1, le=100, description="Number of items to return")
+    skip: int = Field(0, ge=0, description="Number of items to skip")
+
+
 class RestaurantFilters(BaseModel):
     """Query filters for list endpoint."""
     province: Optional[str] = None

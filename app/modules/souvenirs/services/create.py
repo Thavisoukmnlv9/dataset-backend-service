@@ -14,6 +14,7 @@ from app.shared.services.infrastructure.storage import storage_service
 
 from app.modules.souvenirs.schemas.souvenir import (
     SouvenirCreate,
+    SouvenirCreateDraft,
     GalleryImageIn,
     SouvenirProductImageIn,
 )
@@ -51,6 +52,27 @@ async def _resolve_slug(tx: Any, slug: Optional[str], name: str) -> str:
             return candidate
         n += 1
         candidate = f"{base}-{n}"
+
+
+async def _check_souvenir_exists(
+    name: str,
+    province: Optional[str] = None,
+    district: Optional[str] = None,
+    village: Optional[str] = None,
+) -> bool:
+    """Return True if a souvenir with the same name, province, district, and village already exists."""
+    name_norm = (name or "").strip()
+    if not name_norm:
+        return False
+    province_norm = (province or "").strip()
+    district_norm = (district or "").strip()
+    village_norm = (village or "").strip()
+    where: Dict[str, Any] = {"name": name_norm}
+    where["province"] = {"in": [province_norm, None]} if province_norm == "" else province_norm
+    where["district"] = {"in": [district_norm, None]} if district_norm == "" else district_norm
+    where["village"] = {"in": [village_norm, None]} if village_norm == "" else village_norm
+    existing = await prisma.souvenir.find_first(where=where)
+    return existing is not None
 
 
 async def _upload_cover_image(file: Optional[UploadFile]) -> Optional[str]:
@@ -494,6 +516,55 @@ async def create_souvenir(
         raise
     except Exception as e:
         logger.exception("Create souvenir error: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+async def create_souvenir_draft(data: SouvenirCreateDraft) -> Dict[str, Any]:
+    """Create a souvenir with only name, location, country, and contact fields (status DRAFT)."""
+    try:
+        if await _check_souvenir_exists(
+            name=data.souvenir_name,
+            province=data.province,
+            district=data.district,
+            village=data.village,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A souvenir with the same name, province, district and village already exists.",
+            )
+        async with prisma.tx() as tx:
+            resolved_slug = await _resolve_slug(tx, None, data.souvenir_name)
+            create_data: Dict[str, Any] = {
+                "name": data.souvenir_name,
+                "slug": resolved_slug,
+                "status": "DRAFT",
+                "country": data.country or "",
+                "province": data.province or "",
+                "district": data.district or "",
+                "village": data.village,
+                "contact_phone": data.contact_phone,
+                "latitude": data.latitude,
+                "longitude": data.longitude,
+            }
+            created = await tx.souvenir.create(data=create_data)
+            souvenir_id = created.id
+
+        full = await prisma.souvenir.find_unique(
+            where={"id": souvenir_id},
+            include={"tags": True, "gallery": True, "details": True},
+        )
+        payload = _serialize_souvenir(full) if full else {"id": souvenir_id}
+        return create_success_response(
+            message="Souvenir created successfully",
+            data={"souvenir": payload},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Create souvenir (draft) error: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

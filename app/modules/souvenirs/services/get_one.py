@@ -25,6 +25,33 @@ def _apply_upload_urls(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
+async def get_souvenir_draft(souvenir_id: str) -> Dict[str, Any]:
+    try:
+        s = await prisma.souvenir.find_unique(
+            where={"id": souvenir_id},
+            include={
+                "tags": True,
+                "hours": True,
+                "gallery": True,
+                "policies": True,
+                "translations": True,
+                "details": True,
+                "products": {"include": {"images": True}},
+            },
+        )
+        if not s:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if s.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Souvenir is not a draft")
+        data = _apply_upload_urls(_serialize_souvenir(s))
+        return create_success_response(message="Draft retrieved successfully", data={"item": data})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("get_souvenir_draft error: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 async def get_souvenir(souvenir_id: str) -> Dict[str, Any]:
     try:
         s = await prisma.souvenir.find_unique(

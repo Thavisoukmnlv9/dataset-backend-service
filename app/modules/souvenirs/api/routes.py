@@ -10,6 +10,7 @@ from app.shared.schemas.base import PaginationParams
 
 from app.modules.souvenirs.schemas.souvenir import (
     SouvenirCreate,
+    SouvenirCreateDraft,
     SouvenirUpdate,
     SouvenirFilters,
     ListingStatusEnum,
@@ -156,6 +157,34 @@ async def list_souvenirs(
     filters = SouvenirFilters(province=province, district=district, status=status, category=category)
     pagination = PaginationParams(page=page, limit=limit, sort=sort, order=order)
     return await get_souvenirs(filters=filters, pagination=pagination, search=search)
+
+
+@router.get("/draft/{souvenir_id}", summary="Get draft souvenir by ID")
+async def get_draft_souvenir_route(souvenir_id: str, _user=Depends(get_current_active_user)):
+    from app.modules.souvenirs.services.get_one import get_souvenir_draft
+
+    return await get_souvenir_draft(souvenir_id)
+
+
+@router.patch("/draft/{souvenir_id}", summary="Update draft souvenir")
+async def update_draft_souvenir_route(
+    souvenir_id: str,
+    data: SouvenirCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.souvenirs.services.update import update_souvenir_draft as _update_draft
+
+    return await _update_draft(souvenir_id, data)
+
+
+@router.post("/draft", summary="Create souvenir (draft)")
+async def create_souvenir_draft_route(
+    data: SouvenirCreateDraft,
+    admin_user=Depends(get_admin_user),
+):
+    from app.modules.souvenirs.services.create import create_souvenir_draft as _create_draft
+
+    return await _create_draft(data)
 
 
 @router.get("/{souvenir_id}", summary="Get souvenir by ID")

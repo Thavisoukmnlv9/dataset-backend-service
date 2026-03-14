@@ -274,6 +274,18 @@ class SouvenirUpdate(BaseModel):
     products: Optional[List[SouvenirProductIn]] = None
 
 
+class SouvenirCreateDraft(BaseModel):
+    """Minimal payload to create a souvenir: name, location, country, contact."""
+    souvenir_name: str = Field(..., description="Name of the souvenir shop")
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    country: Optional[str] = None
+    province: Optional[str] = None
+    district: Optional[str] = None
+    village: Optional[str] = None
+    contact_phone: Optional[str] = None
+
+
 class SouvenirFilters(BaseModel):
     province: Optional[str] = None
     district: Optional[str] = None

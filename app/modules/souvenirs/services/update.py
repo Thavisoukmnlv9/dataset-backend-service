@@ -9,7 +9,7 @@ from app.prisma.generated.fields import Json as PrismaJson
 from app.shared.services.infrastructure.storage import storage_service
 from app.shared.utils.responses.response import create_success_response
 
-from app.modules.souvenirs.schemas.souvenir import SouvenirUpdate
+from app.modules.souvenirs.schemas.souvenir import SouvenirUpdate, SouvenirCreateDraft
 from app.modules.souvenirs.services.create import (
     _serialize_souvenir,
     _to_stored_path,
@@ -243,4 +243,37 @@ async def update_souvenir(
         raise
     except Exception as e:
         logger.exception("update_souvenir error: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+async def update_souvenir_draft(souvenir_id: str, data: SouvenirCreateDraft) -> Dict[str, Any]:
+    """Update only minimal draft fields for a souvenir in DRAFT status."""
+    try:
+        existing = await prisma.souvenir.find_unique(where={"id": souvenir_id})
+        if not existing:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+        if existing.status != "DRAFT":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Souvenir is not a draft")
+
+        update_payload: Dict[str, Any] = {
+            "name": data.souvenir_name,
+            "country": data.country or "",
+            "province": data.province or "",
+            "district": data.district or "",
+            "village": data.village,
+            "contact_phone": data.contact_phone,
+            "latitude": data.latitude,
+            "longitude": data.longitude,
+        }
+        await prisma.souvenir.update(where={"id": souvenir_id}, data=update_payload)
+        updated = await prisma.souvenir.find_unique(
+            where={"id": souvenir_id},
+            include={"tags": True, "gallery": True, "details": True},
+        )
+        out = _serialize_souvenir(updated) if updated else {"id": souvenir_id}
+        return create_success_response(message="Draft updated successfully", data={"souvenir": out})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("update_souvenir_draft error: %s", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

@@ -5,8 +5,6 @@ Registers all ASGI middleware on the FastAPI app in the correct order.
 Starlette processes middleware in reverse-registration order, so the
 first ``add_middleware`` call becomes the *outermost* layer.
 """
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.request_context import RequestContextMiddleware
@@ -16,28 +14,8 @@ from app.shared.middleware.sanitization_middleware import SanitizationMiddleware
 from app.core.config import settings
 
 
-# class TunnelCORSMiddleware(BaseHTTPMiddleware):
-#     """In development, allow CORS from Cloudflare Quick Tunnel origins (*.trycloudflare.com)."""
-
-#     async def dispatch(self, request: Request, call_next):
-#         origin = request.headers.get("origin") or ""
-#         if (
-#             settings.environment.lower() == "development"
-#             and origin.endswith(".trycloudflare.com")
-#         ):
-#             request.state.tunnel_origin = origin
-#         else:
-#             request.state.tunnel_origin = None
-#         response = await call_next(request)
-#         if getattr(request.state, "tunnel_origin", None):
-#             response.headers["Access-Control-Allow-Origin"] = request.state.tunnel_origin
-#             response.headers["Access-Control-Allow-Credentials"] = "true"
-#         return response
-
-
 def setup_middleware(app: FastAPI):
     """Configure all middleware for the FastAPI app."""
-    # app.add_middleware(TunnelCORSMiddleware)
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(RequestBodyLoggingMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

@@ -16,23 +16,23 @@ from app.shared.middleware.sanitization_middleware import SanitizationMiddleware
 from app.core.config import settings
 
 
-class TunnelCORSMiddleware(BaseHTTPMiddleware):
-    """In development, allow CORS from Cloudflare Quick Tunnel origins (*.trycloudflare.com)."""
+# class TunnelCORSMiddleware(BaseHTTPMiddleware):
+#     """In development, allow CORS from Cloudflare Quick Tunnel origins (*.trycloudflare.com)."""
 
-    async def dispatch(self, request: Request, call_next):
-        origin = request.headers.get("origin") or ""
-        if (
-            settings.environment.lower() == "development"
-            and origin.endswith(".trycloudflare.com")
-        ):
-            request.state.tunnel_origin = origin
-        else:
-            request.state.tunnel_origin = None
-        response = await call_next(request)
-        if getattr(request.state, "tunnel_origin", None):
-            response.headers["Access-Control-Allow-Origin"] = request.state.tunnel_origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
+#     async def dispatch(self, request: Request, call_next):
+#         origin = request.headers.get("origin") or ""
+#         if (
+#             settings.environment.lower() == "development"
+#             and origin.endswith(".trycloudflare.com")
+#         ):
+#             request.state.tunnel_origin = origin
+#         else:
+#             request.state.tunnel_origin = None
+#         response = await call_next(request)
+#         if getattr(request.state, "tunnel_origin", None):
+#             response.headers["Access-Control-Allow-Origin"] = request.state.tunnel_origin
+#             response.headers["Access-Control-Allow-Credentials"] = "true"
+#         return response
 
 
 def setup_middleware(app: FastAPI):

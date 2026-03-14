@@ -92,8 +92,7 @@ class Settings(BaseSettings):
     # ========================================
 
     cors_origins: list[str] = Field(
-        default=["http://localhost:3000",  "http://localhost:3001",  "http://127.0.0.1:3001", "http://192.168.1.180:3000", "http://183.182.111.103:3000", "https://bios-farmer-achievement-olympic.trycloudflare.com",
-"http://localhost:5173", "http://localhost:5174", "http://localhost:8000", "http://localhost:8080"],
+        default=["http://localhost:3000",  "http://localhost:3001",  "http://192.168.0.104:3000"],
         description="CORS origins",
         alias="CORS_ORIGINS"
     )

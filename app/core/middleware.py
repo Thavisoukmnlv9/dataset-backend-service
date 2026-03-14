@@ -37,7 +37,7 @@ class TunnelCORSMiddleware(BaseHTTPMiddleware):
 
 def setup_middleware(app: FastAPI):
     """Configure all middleware for the FastAPI app."""
-    app.add_middleware(TunnelCORSMiddleware)
+    # app.add_middleware(TunnelCORSMiddleware)
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(RequestBodyLoggingMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)

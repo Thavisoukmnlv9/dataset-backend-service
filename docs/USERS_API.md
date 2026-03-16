@@ -1,6 +1,6 @@
 # Users API Documentation
 
-This document describes the API endpoints for managing user accounts in the dataset tourism middleware system.
+This document describes the API endpoints for managing user accounts in the kanom tourism middleware system.
 
 ## Base URL
 ```
@@ -66,7 +66,7 @@ Create a new user account with form data and optional image upload.
 
 **Example Request:**
 ```bash
-curl -X POST "https://api.dataset.com/api/users/" \
+curl -X POST "https://api.kanom.com/api/users/" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "email=user@example.com" \
   -F "phone_number=+856 20 1234 5678" \
@@ -563,7 +563,7 @@ GET /api/users/lookup?q=john&limit=5
 
 ### Create user with form data
 ```bash
-curl -X POST "https://api.dataset.com/api/users/" \
+curl -X POST "https://api.kanom.com/api/users/" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "email=user@example.com" \
   -F "phone_number=+856 20 1234 5678" \
@@ -573,13 +573,13 @@ curl -X POST "https://api.dataset.com/api/users/" \
 
 ### Get users by role
 ```bash
-curl -X GET "https://api.dataset.com/api/users/?role=tourist&limit=20" \
+curl -X GET "https://api.kanom.com/api/users/?role=tourist&limit=20" \
   -H "Accept: application/json"
 ```
 
 ### Update user
 ```bash
-curl -X PUT "https://api.dataset.com/api/users/123e4567-e89b-12d3-a456-426614174000" \
+curl -X PUT "https://api.kanom.com/api/users/123e4567-e89b-12d3-a456-426614174000" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -590,7 +590,7 @@ curl -X PUT "https://api.dataset.com/api/users/123e4567-e89b-12d3-a456-426614174
 
 ### Ban user
 ```bash
-curl -X PUT "https://api.dataset.com/api/users/123e4567-e89b-12d3-a456-426614174000/ban" \
+curl -X PUT "https://api.kanom.com/api/users/123e4567-e89b-12d3-a456-426614174000/ban" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -601,7 +601,7 @@ curl -X PUT "https://api.dataset.com/api/users/123e4567-e89b-12d3-a456-426614174
 
 ### Lookup users
 ```bash
-curl -X GET "https://api.dataset.com/api/users/lookup?q=john&limit=10" \
+curl -X GET "https://api.kanom.com/api/users/lookup?q=john&limit=10" \
   -H "Accept: application/json"
 ```
 

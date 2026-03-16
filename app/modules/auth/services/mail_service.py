@@ -28,26 +28,26 @@ _jinja_env = Environment(
 
 _VERIFICATION_PLAIN = """Hello!
 
-Your dataset verification code is: {otp}
+Your kanom verification code is: {otp}
 
 This code expires in 10 minutes.
 
 If you didn't request this code, please ignore this email.
 
 Best regards,
-The dataset Team
+The kanom Team
 """
 
 _PASSWORD_RESET_PLAIN = """Hello!
 
-Your dataset password reset code is: {otp}
+Your kanom password reset code is: {otp}
 
 This code expires in 10 minutes.
 
 If you didn't request a password reset, you can safely ignore this email.
 
 Best regards,
-The dataset Team
+The kanom Team
 """
 
 
@@ -141,11 +141,11 @@ def send_verification_email(to_email: str, otp: str) -> bool:
     """Send an email-verification OTP."""
     html = _jinja_env.get_template("verify_email.html").render(otp=otp)
     text = _VERIFICATION_PLAIN.format(otp=otp)
-    return _send_email(to_email, "Your dataset Verification Code", html, text)
+    return _send_email(to_email, "Your kanom Verification Code", html, text)
 
 
 def send_password_reset_otp_email(to_email: str, otp: str) -> bool:
     """Send a password-reset OTP."""
     html = _jinja_env.get_template("password_reset_otp.html").render(otp=otp)
     text = _PASSWORD_RESET_PLAIN.format(otp=otp)
-    return _send_email(to_email, "Reset Your dataset Password", html, text)
+    return _send_email(to_email, "Reset Your kanom Password", html, text)

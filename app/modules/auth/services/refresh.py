@@ -55,7 +55,7 @@ class RefreshTokenService:
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "nickname": user.nickname,
-                "role": user.role or "VENDOR_STAFF",
+                "role": user.role or "STAFF",
                 "is_active": not user.banned,
                 "emailVerified": user.email_verified,
                 "phoneNumber": user.phone_number,

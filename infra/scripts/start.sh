@@ -4,9 +4,9 @@
 
 set -e  # Exit on any error
 
-# Configuration
-APP_DIR="/var/www/tourism-middleware"
-VENV_PATH="$APP_DIR/.venv"
+# Configuration (override APP_DIR for your deployment path)
+APP_DIR="${APP_DIR:-/var/www/tourism-middleware}"
+VENV_PATH="${VENV_PATH:-$APP_DIR/.venv}"
 APP_MODULE="app.main:app"
 HOST="0.0.0.0"
 PORT="8000"

@@ -16,7 +16,7 @@ File storage is now abstracted behind a **Storage Port** with pluggable adapters
 | `STORAGE_LOCAL_BASE_DIR` | `uploads` | Directory for saved files (relative to app root) |
 | `STORAGE_LOCAL_PUBLIC_BASE_URL` | `/uploads` | URL prefix for served files (e.g. `/uploads`) |
 | **Remote (minio / s3 / wasabi)** | | |
-| `STORAGE_BUCKET` | `dataset-media` | Bucket name |
+| `STORAGE_BUCKET` | `kanom-media` | Bucket name |
 | `STORAGE_REGION` | (none) | Region (S3/Wasabi) |
 | `STORAGE_ENDPOINT` | (none) | Custom endpoint (MinIO/Wasabi; e.g. `minio:9000`, `s3.wasabisys.com`) |
 | `STORAGE_ACCESS_KEY` | (none) | Access key (or use `MINIO_ACCESS_KEY` for MinIO) |

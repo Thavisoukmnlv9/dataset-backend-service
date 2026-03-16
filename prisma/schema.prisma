@@ -50,8 +50,7 @@ model User {
   updated_at     DateTime  @updatedAt
   deleted_at     DateTime?
   // Relations
-  role           UserRole  @default(VENDOR_STAFF)
-  type           UserType  @default(CLIENT)
+  role           String    @default("STAFF")
   banned         Boolean   @default(false)
   ban_reason     String?   @db.Text
   ban_expires    DateTime?
@@ -61,8 +60,9 @@ model User {
 
   is_active Boolean @default(true)
 
-  refresh_tokens RefreshToken[]
-  sessions       Session[]
+  refresh_tokens  RefreshToken[]
+  sessions        Session[]
+  rbac_user_roles RbacUserRole[]
 
   @@unique([google_id, facebook_id, apple_id])
   @@index([email])
@@ -91,9 +91,9 @@ model Session {
   impersonated_by     String?
   is_active           Boolean  @default(true)
   device_info         Json?
-  last_activity       DateTime @default(now()) 
-  is_trusted          Boolean  @default(false) 
-  security_level      String   @default("normal") 
+  last_activity       DateTime @default(now())
+  is_trusted          Boolean  @default(false)
+  security_level      String   @default("normal")
   user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([user_id])
@@ -151,6 +151,46 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model RbacRole {
+  id             String         @id @default(uuid())
+  name           String         @db.VarChar(100)
+  description    String?        @db.Text
+  permissions    String[]
+  role_type      String
+  is_active      Boolean        @default(true)
+  is_system_role Boolean        @default(false)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  deleted_at     DateTime?
+  user_roles     RbacUserRole[]
+
+  @@index([role_type])
+  @@index([is_active])
+  @@index([name])
+  @@map("rbac_roles")
+}
+
+model RbacUserRole {
+  id          String    @id @default(uuid())
+  user_id     String
+  role_id     String
+  assigned_by String?
+  assigned_at DateTime  @default(now())
+  expires_at  DateTime?
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role        RbacRole  @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([role_id])
+  @@index([is_active])
+  @@index([expires_at])
+  @@map("rbac_user_roles")
+}
+
 model RateLimit {
   id           String    @id @default(uuid())
   identifier   String    @db.VarChar(255)
@@ -168,19 +208,1154 @@ model RateLimit {
   @@map("rate_limits")
 }
 
-enum UserType {
-  CLIENT
-  VENDOR
-  STAFF_MEMBER
-  TRIPBUDDY
-  ADMIN
+model Restaurant {
+  id       String @id @default(uuid())
+  category String @default("RESTAURANT")
+  name     String
+  slug     String @unique
+  status   String @default("ACTIVE")
+
+  // Vendor / contact
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String?
+  long_description  String?
+
+  country      String
+  province     String
+  district     String
+  village      String?
+  address_text String?
+
+  latitude  Float?
+  longitude Float?
+
+  price_band String?
+  currency   String?
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean @default(false)
+  walk_in_supported Boolean @default(true)
+
+  languages_supported String[] @default([])
+
+  cover_image_url String?
+  rating_avg      Float?
+  rating_count    Int     @default(0)
+
+  trust_score      Int?
+  quality_score    Int?
+  popularity_score Int?
+
+  gallery      RestaurantGalleryImage[]
+  tags         RestaurantTag[]
+  policies     RestaurantPolicy[]
+  translations RestaurantTranslation[]
+  hours        RestaurantHours?
+  menu         RestaurantMenu?
+  details      RestaurantDetails?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+  @@map("restaurants")
 }
 
-enum UserRole {
-  VENDOR_STAFF
-  VENDOR_ADMIN
-  ADMIN
-  SUPER_ADMIN
-  SUPPORT
-  MODERATOR
+model RestaurantGalleryImage {
+  id            String     @id @default(uuid())
+  restaurant_id String
+  url           String
+  description   String?
+  is_cover      Boolean    @default(false)
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([restaurant_id])
+  @@map("restaurant_gallery_images")
+}
+
+model RestaurantTag {
+  id            String     @id @default(uuid())
+  restaurant_id String
+  tag_type      String
+  tag_value     String
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([restaurant_id])
+  @@index([tag_type, tag_value])
+  @@map("restaurant_tags")
+}
+
+model RestaurantPolicy {
+  id            String     @id @default(uuid())
+  restaurant_id String
+  policy_type   String
+  policy_text   String
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([restaurant_id])
+  @@index([policy_type])
+  @@map("restaurant_policies")
+}
+
+model RestaurantTranslation {
+  id                String     @id @default(uuid())
+  restaurant_id     String
+  language          String
+  name              String?
+  short_description String?
+  restaurant        Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@unique([restaurant_id, language])
+  @@index([language])
+  @@map("restaurant_translations")
+}
+
+model RestaurantHours {
+  id              String     @id @default(uuid())
+  restaurant_id   String     @unique
+  timezone        String?
+  weekly_schedule Json
+  special_notes   Json? // array of strings
+  restaurant      Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@map("restaurant_hours")
+}
+
+model RestaurantMenu {
+  id            String @id @default(uuid())
+  restaurant_id String @unique
+
+  source_type    String
+  source_version String?
+  source_url     String?
+  language       String?
+  extracted_at   DateTime?
+  metadata       Json?
+
+  restaurant Restaurant    @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  sections   MenuSection[]
+
+  @@index([restaurant_id])
+  @@map("restaurant_menus")
+}
+
+model MenuSection {
+  id          String         @id @default(uuid())
+  menu_id     String
+  name        String
+  source_type String?
+  sort_order  Int            @default(0)
+  menu        RestaurantMenu @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       MenuItem[]
+
+  @@index([menu_id])
+  @@map("menu_sections")
+}
+
+model MenuItem {
+  id         String  @id @default(uuid())
+  section_id String
+  item_id    String?
+
+  name              String
+  description       String?
+  price             Int?
+  currency          String?
+  image_url         String[]
+  image_description String?
+  dietary           Json?
+  spice_level       String?
+  allergens         String[]
+  tags              String[]
+  section           MenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@index([item_id])
+  @@map("menu_items")
+}
+
+model RestaurantDetails {
+  id                     String     @id @default(uuid())
+  restaurant_id          String     @unique
+  cuisine_types          String[]
+  meal_types             String[]
+  avg_spend_per_person   Int?
+  dietary_options        Json?
+  reservation_supported  Boolean    @default(false)
+  reservation_required   Boolean    @default(false)
+  seating_capacity       Int?
+  indoor_seating         Boolean    @default(false)
+  outdoor_seating        Boolean    @default(false)
+  takeaway_available     Boolean    @default(false)
+  delivery_available     Boolean    @default(false)
+  payment_methods        String[]
+  signature_dishes       String[]
+  alcohol_served         Boolean    @default(false)
+  parking_available      Boolean    @default(false)
+  wifi_available         Boolean    @default(false)
+  noise_level            String?
+  suitable_for           String[]
+  best_time_to_visit     String?
+  wait_time_peak_minutes Int?
+  restaurant             Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([restaurant_id])
+  @@map("restaurant_details")
+}
+
+model Cafe {
+  id           String  @id @default(uuid())
+  listing_id   String? @unique @db.VarChar(50)
+  category     String? @default("CAFE")
+  sub_category String? @db.VarChar(50)
+  name         String
+  slug         String? @unique
+  status       String? @default("ACTIVE")
+
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String? @db.Text
+  long_description  String? @db.Text
+
+  country      String?
+  province     String?
+  district     String?
+  village      String?
+  address_text String? @db.Text
+  latitude     Float?
+  longitude    Float?
+
+  price_band String?
+  currency   String? @db.VarChar(10)
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean? @default(false)
+  walk_in_supported Boolean? @default(true)
+
+  // Cafe-specific
+  instant_confirmation        Boolean?  @default(false)
+  cancellation_policy_summary String?   @db.Text
+  child_friendly              Boolean?  @default(false)
+  pet_friendly                Boolean?  @default(false)
+  review_summary_text         String?   @db.Text
+  last_verified_at            DateTime?
+
+  languages_supported String[] @default([])
+  cover_image_url     String?  @db.Text
+  rating_avg          Float?
+  rating_count        Int?     @default(0)
+  trust_score         Int?
+  quality_score       Int?
+  popularity_score    Int?
+
+  gallery      CafeGalleryImage[]
+  details      CafeDetails?
+  tags         CafeTag[]
+  hours        CafeHours?
+  policies     CafePolicy[]
+  translations CafeTranslation[]
+  menu         CafeMenu?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+  @@index([province, district])
+  @@index([slug])
+  @@map("cafes")
+}
+
+model CafeGalleryImage {
+  id          String   @id @default(uuid())
+  cafe_id     String
+  url         String?  @db.Text
+  description String?
+  is_cover    Boolean? @default(false)
+  cafe        Cafe     @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@index([cafe_id])
+  @@map("cafe_gallery_images")
+}
+
+model CafeDetails {
+  id      String @id @default(uuid())
+  cafe_id String @unique
+
+  cafe_styles  String[]
+  food_styles  String[]
+  vibe_tags    String[]
+  suitable_for String[]
+
+  avg_spend_per_person Int?
+  currency             String?
+
+  coffee_styles      String[]
+  tea_options        String[]
+  bean_types         String[]
+  brew_methods       String[]
+  specialty_coffee   Boolean? @default(false)
+  non_coffee_options Boolean? @default(false)
+
+  signature_items   String[]
+  signature_drinks  String[]
+  dessert_available Boolean? @default(false)
+  pastry_available  Boolean? @default(false)
+  dietary_options   Json?
+
+  reservation_supported Boolean? @default(false)
+  reservation_required  Boolean? @default(false)
+
+  seating_capacity   Int?
+  indoor_seating     Boolean? @default(false)
+  outdoor_seating    Boolean? @default(false)
+  takeaway_available Boolean? @default(false)
+  delivery_available Boolean? @default(false)
+
+  laptop_friendly         Boolean? @default(false)
+  good_for_work           Boolean? @default(false)
+  good_for_study          Boolean? @default(false)
+  meeting_friendly        Boolean? @default(false)
+  power_outlets_available Boolean? @default(false)
+  power_outlet_count      Int?
+  wifi_available          Boolean? @default(false)
+  wifi_speed_level        String?
+
+  parking_available      Boolean? @default(false)
+  restroom_available     Boolean? @default(false)
+  air_conditioned        Boolean? @default(false)
+  wheelchair_access      Boolean? @default(false)
+  smoking_allowed        Boolean? @default(false)
+  smoking_area_available Boolean? @default(false)
+
+  alcohol_served  Boolean? @default(false)
+  payment_methods String[]
+
+  noise_level            String?
+  crowd_level            String?
+  best_time_to_visit     String?
+  best_days_to_visit     String[]
+  peak_hours             String?
+  wait_time_peak_minutes Int?
+
+  view_type          String?
+  photo_spot         Boolean? @default(false)
+  instagrammable     Boolean? @default(false)
+  natural_light_good Boolean? @default(false)
+  sunrise_good       Boolean? @default(false)
+  sunset_good        Boolean? @default(false)
+
+  cafe Cafe @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@index([cafe_id])
+  @@map("cafe_details")
+}
+
+model CafeTag {
+  id        String  @id @default(uuid())
+  cafe_id   String
+  tag_type  String?
+  tag_value String?
+  cafe      Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@index([cafe_id])
+  @@index([tag_type, tag_value])
+  @@map("cafe_tags")
+}
+
+model CafeHours {
+  id              String  @id @default(uuid())
+  cafe_id         String  @unique
+  timezone        String? @db.VarChar(50)
+  weekly_schedule Json?
+  special_notes   Json? // array of strings, like RestaurantHours
+  cafe            Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@map("cafe_hours")
+}
+
+model CafeMenu {
+  id             String    @id @default(uuid())
+  cafe_id        String    @unique
+  source_type    String?
+  source_version String?
+  source_url     String?
+  language       String?
+  extracted_at   DateTime?
+  metadata       Json?
+
+  cafe     Cafe              @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  sections CafeMenuSection[]
+
+  @@index([cafe_id])
+  @@map("cafe_menus")
+}
+
+model CafeMenuSection {
+  id          String         @id @default(uuid())
+  menu_id     String
+  name        String?
+  source_type String?
+  sort_order  Int?           @default(0)
+  menu        CafeMenu       @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       CafeMenuItem[]
+
+  @@index([menu_id])
+  @@map("cafe_menu_sections")
+}
+
+model CafeMenuItem {
+  id         String  @id @default(uuid())
+  section_id String
+  item_id    String?
+
+  name              String?
+  description       String?
+  price             Int?
+  currency          String?
+  image_url         String[]
+  image_description String?
+  dietary           Json?
+  spice_level       String?
+  allergens         String[]
+  tags              String[]
+  section           CafeMenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@index([item_id])
+  @@map("cafe_menu_items")
+}
+
+model CafePolicy {
+  id          String  @id @default(uuid())
+  cafe_id     String
+  policy_type String?
+  policy_text String? @db.Text
+  cafe        Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@index([cafe_id])
+  @@index([policy_type])
+  @@map("cafe_policies")
+}
+
+model CafeTranslation {
+  id                String  @id @default(uuid())
+  cafe_id           String
+  language          String? @db.VarChar(10)
+  name              String?
+  short_description String? @db.Text
+  long_description  String? @db.Text
+  cafe              Cafe    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+
+  @@unique([cafe_id, language])
+  @@index([language])
+  @@map("cafe_translations")
+}
+
+model Bar {
+  id       String  @id @default(uuid())
+  category String?
+  name     String
+  slug     String? @unique
+  status   String?
+
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String?
+  long_description  String?
+
+  country      String?
+  province     String?
+  district     String?
+  village      String?
+  address_text String?
+
+  latitude  Float?
+  longitude Float?
+
+  price_band String?
+  currency   String?
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean? @default(false)
+  walk_in_supported Boolean? @default(true)
+
+  languages_supported String[] @default([])
+
+  cover_image_url String?
+  rating_avg      Float?
+  rating_count    Int?    @default(0)
+
+  trust_score      Int?
+  quality_score    Int?
+  popularity_score Int?
+
+  gallery      BarGalleryImage[]
+  tags         BarTag[]
+  policies     BarPolicy[]
+  translations BarTranslation[]
+  hours        BarHours?
+  menu         BarMenu?
+  details      BarDetails?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+  @@map("bars")
+}
+
+model BarGalleryImage {
+  id          String   @id @default(uuid())
+  bar_id      String
+  url         String?
+  description String?
+  is_cover    Boolean? @default(false)
+  bar         Bar      @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@map("bar_gallery_images")
+}
+
+model BarTag {
+  id        String  @id @default(uuid())
+  bar_id    String
+  tag_type  String?
+  tag_value String?
+  bar       Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@index([tag_type, tag_value])
+  @@map("bar_tags")
+}
+
+model BarPolicy {
+  id          String  @id @default(uuid())
+  bar_id      String
+  policy_type String?
+  policy_text String?
+  bar         Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@index([bar_id])
+  @@index([policy_type])
+  @@map("bar_policies")
+}
+
+model BarTranslation {
+  id                String  @id @default(uuid())
+  bar_id            String
+  language          String?
+  name              String?
+  short_description String?
+  bar               Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@unique([bar_id, language])
+  @@index([language])
+  @@map("bar_translations")
+}
+
+model BarHours {
+  id              String  @id @default(uuid())
+  bar_id          String  @unique
+  timezone        String?
+  weekly_schedule Json?
+  special_notes   Json?
+  bar             Bar     @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@map("bar_hours")
+}
+
+model BarMenu {
+  id     String @id @default(uuid())
+  bar_id String @unique
+
+  source_type    String?
+  source_version String?
+  source_url     String?
+  language       String?
+  extracted_at   DateTime?
+  metadata       Json?
+
+  bar             Bar              @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+  barMenuSections BarMenuSection[]
+
+  @@index([bar_id])
+  @@map("bar_menus")
+}
+
+model BarMenuSection {
+  id          String        @id @default(uuid())
+  menu_id     String
+  name        String?
+  source_type String?
+  sort_order  Int?          @default(0)
+  menu        BarMenu       @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  items       BarMenuItem[]
+
+  @@index([menu_id])
+  @@map("bar_menu_sections")
+}
+
+model BarMenuItem {
+  id          String         @id @default(uuid())
+  section_id  String
+  name        String?
+  description String?
+  price       Int?
+  currency    String?
+  image_url   String[]
+  dietary     Json?
+  spice_level String?
+  allergens   String[]
+  tags        String[]
+  section     BarMenuSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@map("bar_menu_items")
+}
+
+model BarDetails {
+  id     String @id @default(uuid())
+  bar_id String @unique
+
+  bar_types           String[]
+  vibe_tags           String[]
+  music_types         String[]
+  entertainment_types String[]
+  crowd_type          String[]
+
+  avg_spend_per_person Int?
+  currency             String?
+
+  drink_categories      String[]
+  signature_drinks      String[]
+  food_available        Boolean? @default(false)
+  food_style            String[]
+  non_alcoholic_options Boolean? @default(false)
+
+  reservation_supported   Boolean? @default(false)
+  reservation_required    Boolean? @default(false)
+  guestlist_supported     Boolean? @default(false)
+  table_booking_supported Boolean? @default(false)
+
+  entry_fee           Int?
+  minimum_spend       Int?
+  table_minimum_spend Int?
+
+  age_restriction_min    Int?
+  id_check_required      Boolean? @default(false)
+  dress_code_required    Boolean? @default(false)
+  dress_code_description String?
+
+  seating_capacity       Int?
+  indoor_seating         Boolean? @default(false)
+  outdoor_seating        Boolean? @default(false)
+  private_room_available Boolean? @default(false)
+  dance_floor            Boolean? @default(false)
+  standing_area          Boolean? @default(false)
+
+  parking_available Boolean? @default(false)
+  wifi_available    Boolean? @default(false)
+  wheelchair_access Boolean? @default(false)
+  air_conditioned   Boolean? @default(false)
+  toilet_available  Boolean? @default(false)
+
+  smoking_allowed        Boolean? @default(false)
+  smoking_area_available Boolean? @default(false)
+  shisha_available       Boolean? @default(false)
+
+  alcohol_served  Boolean? @default(true)
+  payment_methods String[]
+
+  happy_hour_supported   Boolean? @default(false)
+  happy_hour_notes       String?
+  best_time_to_visit     String?
+  best_days_to_visit     String[]
+  peak_hours             String?
+  wait_time_peak_minutes Int?
+  last_order_time        String?
+  queue_expected         Boolean? @default(false)
+  queue_peak_minutes     Int?
+
+  view_type       String?
+  sunset_good     Boolean? @default(false)
+  photo_spot      Boolean? @default(false)
+  suitable_for    String[]
+  dietary_options Json?
+  bar             Bar      @relation(fields: [bar_id], references: [id], onDelete: Cascade)
+
+  @@map("bar_details")
+}
+
+model Attraction {
+  id       String  @id @default(uuid())
+  category String?
+  name     String
+  slug     String? @unique
+  status   String?
+
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String?
+  long_description  String?
+
+  country      String?
+  province     String?
+  district     String?
+  village      String?
+  address_text String?
+
+  latitude  Float?
+  longitude Float?
+
+  price_band String?
+  currency   String?
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean? @default(false)
+  walk_in_supported Boolean? @default(true)
+
+  languages_supported String[] @default([])
+
+  cover_image_url String?
+  rating_avg      Float?
+  rating_count    Int?    @default(0)
+
+  trust_score      Int?
+  quality_score    Int?
+  popularity_score Int?
+
+  gallery      AttractionGalleryImage[]
+  tags         AttractionTag[]
+  policies     AttractionPolicy[]
+  translations AttractionTranslation[]
+  hours        AttractionHours?
+  details      AttractionDetails?
+  processes    AttractionProcess[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+  @@map("attractions")
+}
+
+model AttractionProcess {
+  id String @id @default(uuid())
+  attraction_id String
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+  process_status String @default("TODO")
+  process_result Json?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([attraction_id])
+  @@map("attraction_processes")
+}
+
+model AttractionGalleryImage {
+  id            String     @id @default(uuid())
+  attraction_id String
+  url           String?
+  description   String?
+  is_cover      Boolean?   @default(false)
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@index([attraction_id])
+  @@map("attraction_gallery_images")
+}
+
+model AttractionTag {
+  id            String     @id @default(uuid())
+  attraction_id String
+  tag_type      String?
+  tag_value     String?
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@index([attraction_id])
+  @@index([tag_type, tag_value])
+  @@map("attraction_tags")
+}
+
+model AttractionPolicy {
+  id            String     @id @default(uuid())
+  attraction_id String
+  policy_type   String?
+  policy_text   String?
+  attraction    Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@index([attraction_id])
+  @@index([policy_type])
+  @@map("attraction_policies")
+}
+
+model AttractionTranslation {
+  id                String     @id @default(uuid())
+  attraction_id     String
+  language          String?
+  name              String?
+  short_description String?
+  attraction        Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@unique([attraction_id, language])
+  @@index([language])
+  @@map("attraction_translations")
+}
+
+model AttractionHours {
+  id              String     @id @default(uuid())
+  attraction_id   String     @unique
+  timezone        String?
+  weekly_schedule Json?
+  special_notes   Json?
+  attraction      Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@map("attraction_hours")
+}
+
+model AttractionDetails {
+  id            String @id @default(uuid())
+  attraction_id String @unique
+
+  attraction_type                    String[]
+  ownership_type                     String[]
+  entry_fee_adult                    Int?
+  entry_fee_child                    Int?
+  ticketing_type                     String?
+  recommended_visit_duration_minutes Int?
+  best_visit_time                    String?
+  seasonality                        String?
+  weather_dependency                 String?
+  difficulty_level                   String?
+  walking_required                   Boolean? @default(false)
+  stairs_required                    Boolean? @default(false)
+  wheelchair_access                  Boolean? @default(false)
+  family_friendly                    Boolean? @default(false)
+  elderly_friendly                   Boolean? @default(false)
+  stroller_friendly                  Boolean? @default(false)
+  pet_friendly                       Boolean? @default(false)
+  guide_available                    Boolean? @default(false)
+  photo_spot                         Boolean? @default(false)
+  swim_allowed                       Boolean? @default(false)
+
+  dress_code_required    Boolean? @default(false)
+  dress_code_description String?
+  safety_notes           String?
+
+  facilities      Json?
+  dietary_options Json?
+
+  road_condition                       String?
+  vehicle_required                     String?
+  public_transport_available           Boolean? @default(false)
+  pickup_supported                     Boolean? @default(false)
+  walking_distance_from_parking_meters Int?
+  travel_time_from_city_center_minutes Int?
+  trail_distance_meters                Int?
+  elevation_gain_meters                Int?
+
+  reservation_supported       Boolean? @default(false)
+  reservation_required        Boolean? @default(false)
+  ticket_required             Boolean? @default(false)
+  online_ticket_supported     Boolean? @default(false)
+  last_entry_time             String?
+  cancellation_policy_summary String?
+  refund_policy_summary       String?
+
+  payment_methods   String[]
+  parking_available Boolean? @default(false)
+  wifi_available    Boolean? @default(false)
+  alcohol_served    Boolean? @default(false)
+  noise_level       String?
+  crowd_level       String?
+
+  highlight_points     String[]
+  activities_available String[]
+  combo_with           String[]
+
+  attraction Attraction @relation(fields: [attraction_id], references: [id], onDelete: Cascade)
+
+  @@map("attraction_details")
+}
+
+model Souvenir {
+  id       String  @id @default(uuid())
+  category String?
+  name     String
+  slug     String? @unique
+  status   String?
+
+  vendor_name         String?
+  contact_phone       String?
+  whatsapp            String?
+  email               String?
+  verification_status String?
+
+  short_description String?
+  long_description  String?
+
+  country      String?
+  province     String?
+  district     String?
+  village      String?
+  address_text String?
+
+  latitude  Float?
+  longitude Float?
+
+  price_band String?
+  currency   String?
+  min_price  Int?
+  max_price  Int?
+
+  booking_supported Boolean? @default(false)
+  walk_in_supported Boolean? @default(true)
+
+  languages_supported String[] @default([])
+
+  cover_image_url String?
+  rating_avg      Float?
+  rating_count    Int?    @default(0)
+
+  trust_score      Int?
+  quality_score    Int?
+  popularity_score Int?
+
+  gallery      SouvenirGalleryImage[]
+  tags         SouvenirTag[]
+  policies     SouvenirPolicy[]
+  translations SouvenirTranslation[]
+  hours        SouvenirHours?
+  details      SouvenirDetails?
+  products     SouvenirProduct[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([province, district])
+  @@index([status])
+  @@index([category])
+  @@map("souvenirs")
+}
+
+model SouvenirGalleryImage {
+  id          String   @id @default(uuid())
+  souvenir_id String
+  url         String?
+  description String?
+  is_cover    Boolean? @default(false)
+
+  souvenir Souvenir @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+
+  @@index([souvenir_id])
+  @@map("souvenir_gallery_images")
+}
+
+model SouvenirTag {
+  id          String  @id @default(uuid())
+  souvenir_id String
+  tag_type    String?
+  tag_value   String?
+
+  souvenir Souvenir @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+
+  @@index([souvenir_id])
+  @@index([tag_type, tag_value])
+  @@map("souvenir_tags")
+}
+
+model SouvenirPolicy {
+  id          String  @id @default(uuid())
+  souvenir_id String
+  policy_type String?
+  policy_text String?
+
+  souvenir Souvenir @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+
+  @@index([souvenir_id])
+  @@index([policy_type])
+  @@map("souvenir_policies")
+}
+
+model SouvenirTranslation {
+  id                String  @id @default(uuid())
+  souvenir_id       String
+  language          String?
+  name              String?
+  short_description String?
+  long_description  String?
+
+  souvenir Souvenir @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+
+  @@unique([souvenir_id, language])
+  @@index([language])
+  @@map("souvenir_translations")
+}
+
+model SouvenirHours {
+  id              String  @id @default(uuid())
+  souvenir_id     String  @unique
+  timezone        String?
+  weekly_schedule Json?
+  special_notes   Json?
+
+  souvenir Souvenir @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+
+  @@map("souvenir_hours")
+}
+
+model SouvenirDetails {
+  id          String @id @default(uuid())
+  souvenir_id String @unique
+
+  shop_type          String? // boutique_shop, local_market_shop, artisan_workshop, museum_shop, etc.
+  product_categories String[] // textile, silver, woodcraft, bamboo, pottery, etc.
+  specialties        String[] // lao_silk, handmade_scarf, silver_jewelry, etc.
+
+  // Authenticity / local story
+  local_made_focus                   Boolean? @default(false)
+  handmade_focus                     Boolean? @default(false)
+  artisan_direct                     Boolean? @default(false)
+  authenticity_claims                String[] // "handmade by local artisans", "100% Lao silk", etc.
+  authenticity_certificate_available Boolean? @default(false)
+  artisan_story_available            Boolean? @default(false)
+  cultural_significance_notes        String?
+
+  origin_regions String[] // Luang Prabang, Xiengkhouang, etc.
+  materials_used String[] // silk, silver, bamboo, wood, etc.
+
+  // Shopping services
+  customization_available Boolean? @default(false)
+  customization_types     String[] // engraving, name_printing, custom_color, custom_size
+  customization_notes     String?
+  gift_wrapping           Boolean? @default(false)
+  bulk_order_supported    Boolean? @default(false)
+  wholesale_available     Boolean? @default(false)
+
+  // Shipping / travel-friendly
+  shipping_available        Boolean? @default(false)
+  local_delivery_available  Boolean? @default(false)
+  international_shipping    Boolean? @default(false)
+  shipping_notes            String?
+  packaging_safe_for_travel Boolean? @default(false)
+  fragile_items_available   Boolean? @default(false)
+
+  // Return / exchange (common traveler question)
+  return_exchange_supported Boolean? @default(false)
+  return_window_days        Int?
+  return_notes              String?
+
+  // Pricing guidance (shop-level)
+  avg_spend_per_person Int?
+  currency             String?
+  price_level_notes    String? // "Budget-friendly", "Premium crafts", etc.
+
+  // Convenience
+  payment_methods   String[]
+  staff_languages   String[] // lo, en, th
+  parking_available Boolean? @default(false)
+  wifi_available    Boolean? @default(false)
+  wheelchair_access Boolean? @default(false)
+  air_conditioned   Boolean? @default(false)
+  toilet_available  Boolean? @default(false)
+
+  // Experience / discovery
+  photo_spot   Boolean? @default(false)
+  suitable_for String[] // gifts, business_gifts, collectors, last_minute, etc.
+  best_for     String[] // budget_souvenirs, premium_gifts, local_handmade, etc.
+
+  // Timing
+  best_time_to_visit     String?
+  best_days_to_visit     String[]
+  peak_hours             String?
+  wait_time_peak_minutes Int?
+  queue_expected         Boolean? @default(false)
+  queue_peak_minutes     Int?
+
+  souvenir Souvenir @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+
+  @@map("souvenir_details")
+}
+
+model SouvenirProduct {
+  id          String @id @default(uuid())
+  souvenir_id String
+
+  // Identity
+  product_name      String?
+  product_slug      String? @unique
+  product_category  String?
+  sku               String?
+  short_description String?
+  long_description  String?
+
+  // Material + origin
+  material_type    String?
+  material_color   String?
+  material_size    String?
+  material_weight  String?
+  material_shape   String?
+  material_texture String?
+  origin_region    String?
+  origin_country   String?
+
+  // Craft / quality
+  is_handmade              Boolean? @default(false)
+  artisan_made             Boolean? @default(false)
+  authenticity_certificate Boolean? @default(false)
+  is_customizable          Boolean? @default(false)
+  customization_notes      String?
+
+  // Travel practicality
+  packaging_safe_for_travel Boolean? @default(false)
+  fragile                   Boolean? @default(false)
+  care_instructions         String?
+
+  // Relations
+  souvenir Souvenir               @relation(fields: [souvenir_id], references: [id], onDelete: Cascade)
+  images   SouvenirProductImage[]
+
+  @@index([souvenir_id])
+  @@index([product_category])
+  @@map("souvenir_products")
+}
+
+model SouvenirProductImage {
+  id                  String   @id @default(uuid())
+  souvenir_product_id String
+  url                 String?
+  description         String?
+  is_cover            Boolean? @default(false)
+
+  souvenir_product SouvenirProduct @relation(fields: [souvenir_product_id], references: [id], onDelete: Cascade)
+
+  @@index([souvenir_product_id])
+  @@map("souvenir_product_images")
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# dataset - Seed Data Script (User & Auth only)
+# kanom - Seed Data Script (User & Auth only)
 
 set -e
 
@@ -13,7 +13,7 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo -e "${BLUE}🚀 dataset - Seed Data (User & Auth)${NC}"
+echo -e "${BLUE}🚀 kanom - Seed Data (User & Auth)${NC}"
 echo ""
 
 print_status() { echo -e "${GREEN}✅ $1${NC}"; }

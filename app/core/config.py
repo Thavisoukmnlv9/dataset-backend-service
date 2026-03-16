@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         default="development", description="Environment (development/production)", alias="ENVIRONMENT")
 
     # Domain
-    domain: str = Field(default="http://dataset.duckdns.org",
+    domain: str = Field(default="http://kanom.duckdns.org",
                         description="Domain", alias="DOMAIN")
 
     # JWT Configuration
@@ -70,8 +70,8 @@ class Settings(BaseSettings):
     # GEMINI
     # ========================================
     gemini_api_key: str = Field(
-        default="AIzaSyCPxPfmJlSkYt0Tz3FmLqPEpvqN2in2Uds",
-        description="Gemini API key",
+        default="",
+        description="Gemini API key (required for embeddings/search; empty to disable)",
         alias="GEMINI_API_KEY"
     )
     # ========================================
@@ -92,8 +92,7 @@ class Settings(BaseSettings):
     # ========================================
 
     cors_origins: list[str] = Field(
-        default=["http://localhost:3000",  "http://localhost:3001",  "http://127.0.0.1:3001",
-"http://localhost:5173", "http://localhost:5174", "http://localhost:8000", "http://localhost:8080"],
+        default=["http://localhost:3000",  "http://localhost:3001",  "http://192.168.0.104:3000"],
         description="CORS origins",
         alias="CORS_ORIGINS"
     )
@@ -117,9 +116,9 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = Field(
         default=None, description="SMTP password", alias="MAIL_PASSWORD")
     smtp_from_email: str = Field(
-        default="noreply@dataset.com", description="From email", alias="MAIL_FROM_EMAIL")
+        default="noreply@kanom.com", description="From email", alias="MAIL_FROM_EMAIL")
     smtp_from_name: str = Field(
-        default="dataset", description="From name", alias="MAIL_FROM_NAME")
+        default="kanom", description="From name", alias="MAIL_FROM_NAME")
     smtp_use_tls: bool = Field(
         default=True, description="Use TLS", alias="MAIL_USE_TLS")
     smtp_use_ssl: bool = Field(
@@ -151,7 +150,7 @@ class Settings(BaseSettings):
     )
     # Remote object storage (minio, s3, wasabi)
     storage_bucket: str = Field(
-        default="dataset-media",
+        default="kanom-media",
         description="Bucket name for object storage",
         alias="STORAGE_BUCKET",
     )
@@ -261,6 +260,12 @@ class Settings(BaseSettings):
             warnings.warn(
                 "MINIO_SECRET_KEY still uses the default value — "
                 "rotate it before exposing the service",
+                stacklevel=2,
+            )
+        if self.gemini_api_key and len(self.gemini_api_key) < 10:
+            import warnings
+            warnings.warn(
+                "GEMINI_API_KEY looks like a placeholder — set a valid key in production if using embeddings",
                 stacklevel=2,
             )
 

@@ -2,12 +2,12 @@ import asyncio
 import logging
 from arq import create_pool
 from arq.connections import RedisSettings
+from app.core.config import settings
 from app.modules.auth.services.mail_service import send_verification_email, send_password_reset_otp_email
-import os
 
 logger = logging.getLogger(__name__)
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = settings.redis_url
 
 async def send_verification_email_task(ctx, email: str, otp: str) -> bool:
     try:

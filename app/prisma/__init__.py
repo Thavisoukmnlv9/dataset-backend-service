@@ -1,5 +1,5 @@
 """
-Prisma database client module for dataset Tourism Middleware.
+Prisma database client module for kanom Tourism Middleware.
 
 This module provides the Prisma client instance for database operations.
 """

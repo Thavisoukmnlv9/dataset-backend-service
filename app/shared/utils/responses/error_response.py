@@ -4,6 +4,22 @@ import uuid
 from fastapi import Request
 from app.shared.schemas.error import StandardErrorResponse, ErrorData, ErrorField, MetaData
 
+# Header keys that must be redacted in error responses to avoid leaking secrets
+_SENSITIVE_HEADERS = frozenset({
+    "authorization", "cookie", "x-api-key", "x-auth-token",
+    "proxy-authorization", "x-csrf-token", "x-session-id",
+})
+
+
+def _redact_headers(headers_dict: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    """Redact sensitive headers for safe inclusion in error responses."""
+    if not headers_dict:
+        return headers_dict
+    return {
+        k: "[REDACTED]" if k.lower() in _SENSITIVE_HEADERS else v
+        for k, v in headers_dict.items()
+    }
+
 
 def create_standard_error_response(
     error_code: str,
@@ -49,12 +65,11 @@ def create_standard_error_response(
     # Convert headers to dict for proper JSON serialization
     headers_dict = None
     if request and request.headers:
-        # Convert Starlette Headers to a regular dict, handling any special characters
         headers_dict = {}
         for key, value in request.headers.items():
-            # Store headers as-is (nginx may pass unusual values)
             headers_dict[key.lower()] = value
-    
+        headers_dict = _redact_headers(headers_dict)
+
     # Create metadata
     meta_data = MetaData(
         timestamp=datetime.now(UTC).isoformat() + "Z",
@@ -99,6 +114,7 @@ def create_validation_error_response(
             "missing": "missing",
             "type_error": "invalid_type",
             "value_error": "invalid_value",
+            "enum": "invalid_value",
             "string_too_short": "too_short",
             "string_too_long": "too_long",
             "string_pattern_mismatch": "pattern_mismatch"

@@ -6,6 +6,7 @@ import logging
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError as PydanticValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.shared.utils.responses.error_response import (
     create_standard_error_response,
@@ -35,6 +36,21 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content=error_response.model_dump()
     )
+
+async def pydantic_validation_exception_handler(request: Request, exc: PydanticValidationError):
+    """Handle Pydantic ValidationError from model_validate() etc. (same format as raise_business_logic_error)."""
+    if request.method == "OPTIONS":
+        return Response(status_code=200)
+    logger.error(f"Pydantic validation error: {exc}")
+    error_response = create_validation_error_response(
+        validation_errors=exc.errors(),
+        request=request
+    )
+    return JSONResponse(
+        status_code=422,
+        content=error_response.model_dump()
+    )
+
 
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     """Handle HTTP exceptions"""
@@ -69,24 +85,25 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     )
 
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle general exceptions"""
-    logger.error(f"Unexpected error: {exc}")
-    
-    # Create standardized internal server error response
+    """Handle general exceptions. Never expose internal details to the client."""
+    logger.exception("Unexpected error: %s", exc)
+    # In production, do not attach request metadata to 500 responses to avoid leaking paths/params
+    from app.core.config import settings
+    attach_request = settings.environment.strip().lower() != "production"
     error_response = create_standard_error_response(
         error_code="INTERNAL_SERVER_ERROR",
         message="An unexpected error occurred",
         status_code=500,
-        request=request
+        request=request if attach_request else None,
     )
-    
     return JSONResponse(
         status_code=500,
-        content=error_response.model_dump()
+        content=error_response.model_dump(),
     )
 
 def setup_exception_handlers(app):
     """Register all exception handlers with the FastAPI app"""
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(PydanticValidationError, pydantic_validation_exception_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)

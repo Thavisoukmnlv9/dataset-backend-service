@@ -49,3 +49,6 @@ otp_codes.txt
 # Ignore Deployment Server Configuration (contains sensitive credentials)
 infra/deploy/server-config.sh
 
+
+# Ignore Uploads
+uploads/

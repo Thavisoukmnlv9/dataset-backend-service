@@ -49,7 +49,7 @@ class MinIOService:
             secret_key=settings.minio_secret_key,
             secure=settings.minio_secure
         )
-        self.bucket_name = "dataset-media"
+        self.bucket_name = "kanom-media"
         self._ensure_bucket_exists()
         self._presigned_cache = {}
         self._resized_cache = {}  # Cache for resized image URLs

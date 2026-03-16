@@ -6,7 +6,7 @@ set -e
 WORKER_MODULE="app.worker"
 REDIS_URL="${REDIS_URL:-redis://localhost:6379/0}"
 
-echo "🔄 Starting dataset ARQ Worker..."
+echo "🔄 Starting kanom ARQ Worker..."
 
 # Check project directory
 if [ ! -f "app/worker.py" ]; then

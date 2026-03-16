@@ -13,20 +13,9 @@ class UserStatusEnum(str, Enum):
 
 
 class UserRoleEnum(str, Enum):
-    VENDOR_STAFF = "VENDOR_STAFF"
-    VENDOR_ADMIN = "VENDOR_ADMIN"
     ADMIN = "ADMIN"
     SUPER_ADMIN = "SUPER_ADMIN"
-    SUPPORT = "SUPPORT"
-    MODERATOR = "MODERATOR"
-
-
-class UserTypeEnum(str, Enum):
-    CLIENT = "CLIENT"
-    VENDOR = "VENDOR"
-    STAFF_MEMBER = "STAFF_MEMBER"
-    TRIPBUDDY = "TRIPBUDDY"
-    ADMIN = "ADMIN"
+    STAFF = "STAFF"
 
 
 class UserBase(BaseModel):
@@ -67,8 +56,7 @@ class UserBase(BaseModel):
     locked_until: Optional[datetime] = Field(None, description="Account lock until")
     
     # User Status
-    role: UserRoleEnum = Field(default=UserRoleEnum.VENDOR_STAFF, description="User role")
-    type: UserTypeEnum = Field(default=UserTypeEnum.CLIENT, description="User type")
+    role: UserRoleEnum = Field(default=UserRoleEnum.STAFF, description="User role")
     banned: bool = Field(default=False, description="Whether user is banned")
     ban_reason: Optional[str] = Field(None, description="Reason for ban")
     ban_expires: Optional[datetime] = Field(None, description="Ban expiration date")
@@ -108,7 +96,6 @@ class UserUpdate(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=20, description="Phone number")
     theme_pref: Optional[str] = Field(None, description="Theme preference")
     role: Optional[UserRoleEnum] = Field(None, description="User role")
-    type: Optional[UserTypeEnum] = Field(None, description="User type")
     banned: Optional[bool] = Field(None, description="Whether user is banned")
     ban_reason: Optional[str] = Field(None, description="Reason for ban")
     ban_expires: Optional[datetime] = Field(None, description="Ban expiration date")
@@ -147,7 +134,6 @@ class UserFilters(BaseModel):
     email: Optional[str] = None
     phone_number: Optional[str] = None
     role: Optional[UserRoleEnum] = None
-    type: Optional[UserTypeEnum] = None
     banned: Optional[bool] = None
     is_anonymous: Optional[bool] = None
     email_verified: Optional[bool] = None

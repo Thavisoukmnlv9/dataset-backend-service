@@ -246,6 +246,38 @@ MAIL_USE_SSL=false
 
 ## 🚀 Running the Application
 
+### Local verification (from project root)
+
+Run from the repository root (`/path/to/kanom-backend-service`):
+
+```bash
+cd /path/to/kanom-backend-service
+
+# Install and generate
+make install
+make generate
+
+# Run tests (excluding Qdrant if not running)
+pytest tests/ -v --tb=short --ignore=tests/test_restaurants_qdrant.py
+
+# Start API
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+In another terminal:
+
+```bash
+# Health check
+curl -s http://localhost:8000/health
+```
+
+Start the worker (requires Redis):
+
+```bash
+./worker.sh
+# or: python -m app.worker
+```
+
 ### Quick Start with Makefile (Recommended) 🚀
 
 The easiest way to get started is using the Makefile commands:

@@ -70,8 +70,8 @@ class Settings(BaseSettings):
     # GEMINI
     # ========================================
     gemini_api_key: str = Field(
-        default="AIzaSyDUORhtRBnzEhbIgJAPcfNvx5XiZlht12c",
-        description="Gemini API key",
+        default="",
+        description="Gemini API key (required for embeddings/search; empty to disable)",
         alias="GEMINI_API_KEY"
     )
     # ========================================
@@ -260,6 +260,12 @@ class Settings(BaseSettings):
             warnings.warn(
                 "MINIO_SECRET_KEY still uses the default value — "
                 "rotate it before exposing the service",
+                stacklevel=2,
+            )
+        if self.gemini_api_key and len(self.gemini_api_key) < 10:
+            import warnings
+            warnings.warn(
+                "GEMINI_API_KEY looks like a placeholder — set a valid key in production if using embeddings",
                 stacklevel=2,
             )
 

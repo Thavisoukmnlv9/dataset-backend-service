@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 
@@ -9,16 +9,12 @@ class ErrorField(BaseModel):
     field: Optional[str] = None
     location: Literal["body", "query", "params"] = "body"
     type: Literal[
-        "missing", "invalid_type", "invalid_value", 
+        "missing", "invalid_type", "invalid_value",
         "too_short", "too_long", "pattern_mismatch", "conflict", "not_found",
         "unauthorized", "forbidden", "internal_server_error", "bad_request",
         "rate_limit_exceeded", "authentication_error", "authorization_error",
         "validation_error", "business_logic_error", "resource_unavailable",
         "database_constraint_error", "business_rule_violation",
-        "resource_unavailable", "database_constraint_error",
-        "business_rule_violation", "resource_unavailable",
-        "database_constraint_error", "business_rule_violation",
-        "resource_unavailable", "database_constraint_error", "business_rule_violation",
     ] = "invalid_value"
     message: str
 
@@ -33,7 +29,7 @@ class ErrorData(BaseModel):
 
 class MetaData(BaseModel):
     """Metadata for error responses"""
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
     request_id: Optional[str] = None
     path: Optional[str] = None
     method: Optional[str] = None

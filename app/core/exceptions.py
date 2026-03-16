@@ -85,20 +85,20 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     )
 
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle general exceptions"""
-    logger.error(f"Unexpected error: {exc}")
-    
-    # Create standardized internal server error response
+    """Handle general exceptions. Never expose internal details to the client."""
+    logger.exception("Unexpected error: %s", exc)
+    # In production, do not attach request metadata to 500 responses to avoid leaking paths/params
+    from app.core.config import settings
+    attach_request = settings.environment.strip().lower() != "production"
     error_response = create_standard_error_response(
         error_code="INTERNAL_SERVER_ERROR",
         message="An unexpected error occurred",
         status_code=500,
-        request=request
+        request=request if attach_request else None,
     )
-    
     return JSONResponse(
         status_code=500,
-        content=error_response.model_dump()
+        content=error_response.model_dump(),
     )
 
 def setup_exception_handlers(app):

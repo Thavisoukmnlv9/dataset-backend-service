@@ -21,7 +21,6 @@ def load_service(app: FastAPI, service_name: str, import_path: str, router_name:
         module = importlib.import_module(import_path)
         router = getattr(module, router_name)
         app.include_router(router, prefix="/api/v1")
-        app.include_router(router)
         logger.info("%s service routes loaded", service_name)
         return True
     except Exception as e:
